@@ -2,25 +2,94 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <title>Üyeli Hobi Sitesi - V2</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mobil Uyumlu Hobi Sitem</title>
+    
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
     
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; display: flex; justify-content: center; padding: 40px 20px; margin: 0; }
-        .container { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); width: 100%; max-width: 450px; text-align: center; }
-        h2 { color: #1c1e21; margin-bottom: 20px; }
-        input, textarea { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 15px; }
-        button { width: 100%; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; margin-top: 10px; transition: 0.3s; font-size: 16px; }
+        /* GENEL AYARLAR */
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            background: #f0f2f5; 
+            display: flex; 
+            justify-content: center; 
+            align-items: flex-start; 
+            min-height: 100vh;
+            margin: 0; 
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        /* KONTEYNER: Mobilde %95, Tablete %80 genişlik */
+        .container { 
+            background: white; 
+            padding: 25px; 
+            border-radius: 20px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08); 
+            width: 100%; 
+            max-width: 500px; /* Masaüstünde çok yayılmasın */
+            text-align: center; 
+        }
+
+        h2 { color: #1c1e21; font-size: 1.5rem; margin-bottom: 20px; }
+
+        /* GİRDİ ALANLARI: Mobilde daha büyük dokunma alanı */
+        input, textarea { 
+            width: 100%; 
+            padding: 14px; 
+            margin: 8px 0; 
+            border: 1px solid #ddd; 
+            border-radius: 12px; 
+            box-sizing: border-box; 
+            font-size: 16px; /* Mobilde klavyenin zoom yapmasını engeller */
+            outline: none;
+            transition: border 0.3s;
+        }
+        
+        input:focus, textarea:focus { border-color: #1877f2; }
+
+        /* BUTONLAR: Daha büyük ve yuvarlak */
+        button { 
+            width: 100%; 
+            padding: 15px; 
+            border: none; 
+            border-radius: 12px; 
+            cursor: pointer; 
+            font-weight: bold; 
+            margin-top: 10px; 
+            font-size: 16px;
+            transition: opacity 0.2s;
+        }
+
         .btn-blue { background: #1877f2; color: white; }
-        .btn-blue:hover { background: #166fe5; }
         .btn-green { background: #42b72a; color: white; }
-        .btn-red { background: #dc3545; color: white; }
+        .btn-red { background: #f02849; color: white; margin-top: 20px; }
+        button:active { opacity: 0.8; }
+
         .hidden { display: none; }
-        .msg-box { background: #f8f9fa; border-left: 5px solid #1877f2; padding: 15px; margin: 10px 0; border-radius: 6px; text-align: left; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        .link { color: #1877f2; cursor: pointer; font-size: 14px; text-decoration: none; font-weight: bold; }
-        .link:hover { text-decoration: underline; }
-        hr { border: 0; border-top: 1px solid #eee; margin: 25px 0; }
+
+        /* MESAJ KUTUSU: Mobilde daha okunaklı */
+        .msg-box { 
+            background: #f8f9fa; 
+            border-left: 6px solid #1877f2; 
+            padding: 15px; 
+            margin: 12px 0; 
+            border-radius: 10px; 
+            text-align: left; 
+            font-size: 15px;
+            word-wrap: break-word; /* Uzun kelimeleri böler, ekranı kaydırmaz */
+        }
+
+        .link { color: #1877f2; cursor: pointer; font-weight: 600; text-decoration: none; }
+        
+        /* TABLET VE TELEFON ÖZEL AYARI */
+        @media (max-width: 480px) {
+            body { padding: 10px; }
+            .container { padding: 20px; border-radius: 15px; }
+            h2 { font-size: 1.2rem; }
+        }
     </style>
 </head>
 <body>
@@ -31,31 +100,27 @@
         <input type="text" id="user-name" placeholder="Kullanıcı Adı">
         <input type="password" id="user-pass" placeholder="Şifre">
         <button class="btn-blue" id="main-btn" onclick="login()">Giriş Yap</button>
-        <p id="toggle-text" style="margin-top: 15px;">Hesabın yok mu? <span class="link" onclick="toggleAuth()">Kayıt Ol</span></p>
+        <p id="toggle-text">Hesabın yok mu? <span class="link" onclick="toggleAuth()">Kayıt Ol</span></p>
     </div>
 
     <div id="user-panel" class="hidden">
-        <h2>Hoş Geldin, <span id="display-name" style="color: #1877f2;"></span>!</h2>
+        <h2>Hoş Geldin, <span id="display-name" style="color: #1877f2;"></span></h2>
         
-        <div id="message-section">
-            <textarea id="user-msg" placeholder="Admin'e bir mesaj bırakın..." rows="4"></textarea>
-            <button class="btn-green" onclick="sendMessage()">Mesajı Gönder</button>
-        </div>
+        <textarea id="user-msg" placeholder="Bir şeyler yaz..." rows="3"></textarea>
+        <button class="btn-green" onclick="sendMessage()">Mesajı Gönder</button>
 
         <div id="admin-only" class="hidden">
-            <hr>
-            <h3 style="color: #d32f2f;">📬 Gelen Kutusu (Sadece Admin)</h3>
-            <div id="all-messages" style="max-height: 400px; overflow-y: auto;">
-                Mesajlar yükleniyor...
-            </div>
+            <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+            <h3 style="font-size: 1.1rem; color: #65676b;">📬 Gelen Mesajlar</h3>
+            <div id="all-messages" style="max-height: 300px; overflow-y: auto;"></div>
         </div>
 
-        <button class="btn-red" style="margin-top: 30px;" onclick="logout()">Güvenli Çıkış</button>
+        <button class="btn-red" onclick="logout()">Çıkış Yap</button>
     </div>
 </div>
 
 <script>
-    // --- 1. FIREBASE AYARLARI (Kendi bilgilerini buraya yapıştır) ---
+    // --- FIREBASE AYARLARINI BURAYA YAPIŞTIR ---
     const firebaseConfig = {
         apiKey: "AIzaSyArIYOp-msUGe_T4bLiVkoDhvXYhLuWVeo",
         authDomain: "test-sitem.firebaseapp.com",
@@ -63,18 +128,18 @@
         projectId: "test-sitem",
         storageBucket: "test-sitem.firebasestorage.app",
         messagingSenderId: "97147105273",
-        appId: "1:97147105273:web:6e70cf559735f68fb8d728"
+        appId: "1:97147105273:web:6e70cf559735f68fb8d728",
+        measurementId: "G-ETZLC279HD"
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // --- 2. ADMIN AYARLARI (İstediğin gibi değiştir) ---
-    const OZEL_ADMIN_ADI = "Yusuf Hüsrev";    // Admin kullanıcı adın
-    const OZEL_ADMIN_SIFRE = "1417admin1417";  // Admin şifren
+    // --- ADMIN BİLGİLERİN ---
+    const OZEL_ADMIN_ADI = "Yusuf Hüsrev"; 
+    const OZEL_ADMIN_SIFRE = "1417admin1417"; 
 
     let isLoginMode = true;
 
-    // Giriş/Kayıt ekranı arasında geçiş
     function toggleAuth() {
         isLoginMode = !isLoginMode;
         document.getElementById('auth-title').innerText = isLoginMode ? "Giriş Yap" : "Kayıt Ol";
@@ -84,87 +149,61 @@
             'Zaten hesabın var mı? <span class="link" onclick="toggleAuth()">Giriş Yap</span>';
     }
 
-    // Giriş ve Kayıt İşlemleri
     function login() {
         const name = document.getElementById('user-name').value.trim();
         const pass = document.getElementById('user-pass').value.trim();
-
-        if(!name || !pass) { alert("Lütfen kullanıcı adı ve şifre girin!"); return; }
+        if(!name || !pass) { alert("Lütfen alanları doldur!"); return; }
 
         if(isLoginMode) {
-            // Giriş Kontrolü
             db.ref('users/' + name).once('value', (snap) => {
                 if(snap.exists() && snap.val().password === pass) {
                     showPanel(name, pass);
-                } else {
-                    alert("Kullanıcı adı veya şifre hatalı!");
-                }
+                } else { alert("Hatalı bilgi!"); }
             });
         } else {
-            // Kayıt Kontrolü
             db.ref('users/' + name).set({ password: pass }, (err) => {
-                if(!err) {
-                    alert("Hesabınız oluşturuldu! Şimdi giriş yapabilirsiniz.");
-                    toggleAuth();
-                }
+                if(!err) { alert("Kayıt başarılı! Şimdi giriş yap."); toggleAuth(); }
             });
         }
     }
 
-    // Paneli Göster ve Admin Kontrolü Yap
     function showPanel(username, password) {
         document.getElementById('auth-area').classList.add('hidden');
         document.getElementById('user-panel').classList.remove('hidden');
         document.getElementById('display-name').innerText = username;
 
-        // KRİTİK: Hem isim hem şifre belirttiğin admin bilgileriyle eşleşiyor mu?
         if(username === OZEL_ADMIN_ADI && password === OZEL_ADMIN_SIFRE) {
             document.getElementById('admin-only').classList.remove('hidden');
             loadAllMessages();
         }
     }
 
-    // Mesaj Gönderme
     function sendMessage() {
         const msg = document.getElementById('user-msg').value;
         const name = document.getElementById('display-name').innerText;
-        if(msg.trim() !== "") {
+        if(msg.trim()) {
             db.ref('mesajlar').push({
                 from: name,
                 text: msg,
-                time: new Date().toLocaleString()
+                time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
             });
-            alert("Mesajınız iletildi!");
+            alert("İletildi!");
             document.getElementById('user-msg').value = "";
-        } else {
-            alert("Mesaj kutusu boş olamaz!");
         }
     }
 
-    // Tüm Mesajları Admin İçin Yükle
     function loadAllMessages() {
         db.ref('mesajlar').on('value', (snap) => {
             const area = document.getElementById('all-messages');
             area.innerHTML = "";
-            if(!snap.exists()) { area.innerHTML = "Henüz mesaj gelmedi."; return; }
-            
             snap.forEach((child) => {
                 const data = child.val();
-                area.innerHTML = `
-                    <div class="msg-box">
-                        <strong>👤 ${data.from}:</strong><br>
-                        <span>${data.text}</span><br>
-                        <small style="color: #888;">🕒 ${data.time}</small>
-                    </div>
-                ` + area.innerHTML; // En yeni mesaj en üstte görünür
+                area.innerHTML = `<div class="msg-box"><strong>${data.from}:</strong> ${data.text}<br><small style="color:#999">${data.time}</small></div>` + area.innerHTML;
             });
         });
     }
 
-    // Çıkış Yap
-    function logout() {
-        location.reload();
-    }
+    function logout() { location.reload(); }
 </script>
 
 </body>
