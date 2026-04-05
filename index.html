@@ -3,67 +3,80 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Medya Paylaşım Portalı</title>
+    <title>Medya Portalı - Giriş</title>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-storage-compat.js"></script>
     
     <style>
-        :root { --primary: #1877f2; --bg: #f0f2f5; }
+        :root { --primary: #1877f2; --success: #42b72a; --bg: #f0f2f5; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; padding: 15px; display: flex; justify-content: center; }
         .container { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 450px; text-align: center; }
         
-        input, textarea { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 10px; font-size: 16px; box-sizing: border-box; }
-        .file-label { display: block; background: #eef5ff; color: var(--primary); padding: 15px; border: 2px dashed var(--primary); border-radius: 12px; cursor: pointer; margin: 10px 0; font-weight: bold; }
-        
-        button { width: 100%; padding: 14px; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; font-size: 16px; margin-top: 10px; }
+        input, textarea { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 10px; font-size: 16px; box-sizing: border-box; outline: none; }
+        input:focus { border-color: var(--primary); }
+
+        /* BUTON GRUBU */
+        .auth-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+        button { width: 100%; padding: 14px; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; font-size: 15px; transition: 0.2s; }
         .btn-blue { background: var(--primary); color: white; }
+        .btn-green { background: var(--success); color: white; }
+        .btn-red { background: #f02849; color: white; margin-top: 20px; }
+        button:active { opacity: 0.8; transform: scale(0.98); }
+
+        .file-label { display: block; background: #f0f7ff; color: var(--primary); padding: 20px; border: 2px dashed var(--primary); border-radius: 12px; cursor: pointer; margin: 15px 0; font-weight: bold; }
         .hidden { display: none; }
         
-        .card { background: white; border-radius: 12px; padding: 15px; margin: 15px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1); text-align: left; }
-        .media-preview { width: 100%; border-radius: 8px; margin-top: 10px; max-height: 300px; object-fit: cover; }
-        #progress-bar { width: 0%; height: 5px; background: #42b72a; transition: 0.3s; border-radius: 5px; }
+        .card { background: white; border-radius: 12px; padding: 15px; margin: 15px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1); text-align: left; border-left: 5px solid var(--primary); }
+        .media-preview { width: 100%; border-radius: 8px; margin-top: 10px; max-height: 350px; object-fit: contain; background: #000; }
+        #progress-bar { width: 0%; height: 6px; background: var(--success); transition: 0.3s; border-radius: 5px; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <div id="auth-page">
-        <h2>Giriş Yap</h2>
+        <h2>Hoş Geldiniz</h2>
+        <p style="color:#666; font-size:14px;">Lütfen giriş yapın veya yeni hesap oluşturun.</p>
         <input type="text" id="user-name" placeholder="Kullanıcı Adı">
         <input type="password" id="user-pass" placeholder="Şifre">
-        <button class="btn-blue" onclick="login()">Giriş / Kayıt</button>
+        
+        <div class="auth-buttons">
+            <button class="btn-blue" onclick="handleAuth('login')">Giriş Yap</button>
+            <button class="btn-green" onclick="handleAuth('register')">Kayıt Ol</button>
+        </div>
     </div>
 
     <div id="main-page" class="hidden">
-        <h3>Merhaba, <span id="display-name" style="color:var(--primary)"></span></h3>
+        <h3>Selam, <span id="display-name" style="color:var(--primary)"></span>!</h3>
         
         <div id="upload-area">
-            <textarea id="msg-text" placeholder="Mesajınız..."></textarea>
+            <textarea id="msg-text" placeholder="Bir şeyler yaz..." rows="2"></textarea>
             
             <label class="file-label">
-                📷 Fotoğraf veya 🎥 Video Seç
+                📂 Fotoğraf / Video Seç
                 <input type="file" id="file-input" style="display:none" accept="image/*,video/*">
             </label>
-            <div id="progress-container" style="background:#eee; border-radius:5px; margin:5px 0;">
+            
+            <div id="progress-container" style="background:#eee; border-radius:5px; margin:5px 0; overflow:hidden;">
                 <div id="progress-bar"></div>
             </div>
             
-            <button id="send-btn" class="btn-blue" onclick="uploadData()">Gönder</button>
+            <button id="send-btn" class="btn-blue" onclick="uploadData()">Paylaş</button>
         </div>
 
         <div id="admin-view" class="hidden">
-            <hr>
-            <h4>📩 Gelen Medyalar</h4>
+            <hr style="border:0; border-top:1px solid #eee; margin:25px 0;">
+            <h4 style="text-align:left;">📩 Gelen Paylaşımlar</h4>
             <div id="media-list"></div>
         </div>
 
-        <button onclick="location.reload()" style="background:#ddd; margin-top:20px;">Çıkış Yap</button>
+        <button onclick="location.reload()" class="btn-red">Güvenli Çıkış</button>
     </div>
 </div>
 
 <script>
-    // --- FIREBASE CONFIG (Kendi bilgilerini buraya koy!) ---
+    // --- FIREBASE AYARLARINI BURAYA YAPIŞTIR ---
     const firebaseConfig = {
       apiKey: "AIzaSyArIYOp-msUGe_T4bLiVkoDhvXYhLuWVeo",
       authDomain: "test-sitem.firebaseapp.com",
@@ -78,22 +91,35 @@
     const db = firebase.database();
     const storage = firebase.storage();
 
-    function login() {
-        const n = document.getElementById('Yusuf Hüsrev').value;
-        const p = document.getElementById('1417admin1417').value;
-        if(!n || !p) return;
+    // HEM GİRİŞ HEM KAYIT İÇİN TEK FONKSİYON
+    function handleAuth(type) {
+        const n = document.getElementById('user-name').value.trim();
+        const p = document.getElementById('user-pass').value.trim();
+        if(!n || !p) return alert("Lütfen kullanıcı adı ve şifre girin!");
 
-        db.ref('users/' + n).once('value', s => {
-            if(s.exists() && s.val().password === p) start(n);
-            else if(!s.exists()) db.ref('users/' + n).set({password: p}).then(()=>start(n));
-            else alert("Hata!");
-        });
+        const userRef = db.ref('users/' + n);
+
+        if(type === 'register') {
+            userRef.once('value', s => {
+                if(s.exists()) alert("Bu kullanıcı adı zaten alınmış!");
+                else userRef.set({password: p}).then(() => {
+                    alert("Kayıt başarılı! Giriş yapılıyor...");
+                    start(n);
+                });
+            });
+        } else {
+            userRef.once('value', s => {
+                if(s.exists() && s.val().password === p) start(n);
+                else alert("Hatalı kullanıcı adı veya şifre!");
+            });
+        }
     }
 
     function start(n) {
         document.getElementById('auth-page').classList.add('hidden');
         document.getElementById('main-page').classList.remove('hidden');
         document.getElementById('display-name').innerText = n;
+        // Kendi belirlediğin admin adını buraya yaz
         if(n === "admin") {
             document.getElementById('admin-view').classList.remove('hidden');
             loadMedia();
@@ -106,12 +132,10 @@
         const name = document.getElementById('display-name').innerText;
         const btn = document.getElementById('send-btn');
 
-        if(!file && !text) return alert("Dosya veya mesaj seçin!");
+        if(!file && !text) return alert("Paylaşmak için bir şey seçin!");
         
         btn.disabled = true;
         btn.innerText = "Yükleniyor...";
-
-        let fileUrl = "";
 
         if(file) {
             const storageRef = storage.ref('medya/' + Date.now() + "_" + file.name);
@@ -122,9 +146,9 @@
                     const prog = (snap.bytesTransferred / snap.totalBytes) * 100;
                     document.getElementById('progress-bar').style.width = prog + "%";
                 }, 
-                (err) => alert("Yükleme hatası!"), 
+                (err) => { alert("Yükleme hatası!"); btn.disabled = false; }, 
                 async () => {
-                    fileUrl = await uploadTask.snapshot.ref.getDownloadURL();
+                    const fileUrl = await uploadTask.snapshot.ref.getDownloadURL();
                     saveToDb(name, text, fileUrl, file.type);
                 }
             );
@@ -139,10 +163,14 @@
             mesaj: text,
             medyaUrl: url,
             medyaTipi: type,
-            tarih: new Date().toLocaleString()
+            tarih: new Date().toLocaleString('tr-TR')
         }).then(() => {
-            alert("Başarıyla gönderildi!");
-            location.reload();
+            alert("Paylaşıldı!");
+            document.getElementById('msg-text').value = "";
+            document.getElementById('file-input').value = "";
+            document.getElementById('progress-bar').style.width = "0%";
+            document.getElementById('send-btn').disabled = false;
+            document.getElementById('send-btn').innerText = "Paylaş";
         });
     }
 
@@ -159,8 +187,8 @@
                 }
                 list.innerHTML = `
                     <div class="card">
-                        <b>👤 ${d.kimden}</b> <small>${d.tarih}</small><br>
-                        <p>${d.mesaj}</p>
+                        <b>👤 ${d.kimden}</b> <small style="float:right; color:#888;">${d.tarih}</small><br>
+                        <p style="margin:10px 0;">${d.mesaj}</p>
                         ${mediaHtml}
                     </div>
                 ` + list.innerHTML;
