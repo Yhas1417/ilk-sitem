@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel - Medya & Yanıt</title>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-storage-compat.js"></script>
+    <style>
+        :root { --primary: #1877f2; --bg: #f0f2f5; --admin-bg: #fff9c4; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; padding: 20px; display: flex; justify-content: center; }
+        .logout-btn { position: fixed; top: 15px; right: 15px; background: #ff4757; color: white; border: none; padding: 8px 15px; border-radius: 8px; cursor: pointer; z-index: 1000; font-weight: bold; }
+        .container { background: white; padding: 20px; border-radius: 20px; width: 100%; max-width: 500px; margin-top: 40px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        textarea { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd; margin: 10px 0; box-sizing: border-box; font-size: 16px; outline: none; }
+        .file-label { display: block; background: #f0f7ff; padding: 15px; border: 2px dashed var(--primary); border-radius: 12px; cursor: pointer; font-weight: bold; color: var(--primary); margin: 10px 0; }
+        .card { background: white; border-radius: 12px; padding: 15px; margin: 15px 0; border-left: 5px solid var(--primary); box-shadow: 0 2px 5px rgba(0,0,0,0.05); text-align: left; }
+        .media-preview { width: 100%; border-radius: 8px; margin-top: 10px; max-height: 400px; object-fit: contain; background: #f9f9f9; }
+        .reply-box { background: var(--admin-bg); border: 1px solid #fbc02d; padding: 10px; border-radius: 8px; margin-top: 10px; font-size: 14px; }
+        .admin-input-group { margin-top: 10px; display: flex; gap: 5px; }
+        .admin-input-group input { flex: 1; padding: 8px; border-radius: 5px; border: 1px solid #ccc; }
+        .admin-input-group button { background: #65676b; color: white; border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <button class="logout-btn" onclick="logout()">Oturumu Kapat</button>
+
+    <div class="container">
+        <h3>Hoş Geldin, <span id="display-name" style="color:var(--primary)"></span></h3>
+        
+        <div id="upload-area">
+            <textarea id="msg-text" placeholder="Bir şeyler yaz..."></textarea>
+            <label class="file-label">📂 Fotoğraf / Video Seç <input type="file" id="file-input" style="display:none" accept="image/*,video/*"></label>
+            <button onclick="upload()" id="up-btn" style="width:100%; padding:14px; background:var(--primary); color:white; border:none; border-radius:10px; font-weight:bold; cursor:pointer;">Paylaş</button>
+            <p id="status" style="color:green; display:none; font-weight:bold; margin-top:10px;">✅ Başarıyla gönderildi!</p>
+        </div>
+
+        <hr style="margin:25px 0; border:0; border-top:1px solid #eee;">
+        <h4 style="text-align:left;">🖼️ Paylaşımlar</h4>
+        <div id="media-list"></div>
+    </div>
+
+    <script>
+        // --- FIREBASE CONFIG (Alt alta) ---
+        const firebaseConfig = {
+          apiKey: "AIzaSyArIYOp-msUGe_T4bLiVkoDhvXYhLuWVeo",
+          authDomain: "test-sitem.firebaseapp.com",
+          databaseURL: "https://test-sitem-default-rtdb.europe-west1.firebasedatabase.app",
+          projectId: "test-sitem",
+          storageBucket: "test-sitem.firebasestorage.app",
+          messagingSenderId: "97147105273",
+          appId: "1:97147105273:web:6e70cf559735f68fb8d728",
+          measurementId: "G-ETZLC279HD"
+        };
+        
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        const storage = firebase.storage();
+
+        // --- GÜVENLİ ADMİN BİLGİLERİ ---
+        const GERCEK_ADMIN_ADI = "Yusuf Hüsrev"; 
+        const GERCEK_ADMIN_SIFRE = "1417admin1417"; 
+
+        // LocalStorage'dan giriş bilgilerini al
+        const currentUser = localStorage.getItem('user_name');
+        const currentPass = localStorage.getItem('user_pass');
+
+        // Giriş yapılmamışsa index'e at
+        if(!currentUser) {
+            window.location.href = "index.html";
+        } else {
+            document.getElementById('display-name').innerText = currentUser;
+        }
+
+        async function upload() {
+            const file = document.getElementById('file-input').files[0];
+            const text = document.getElementById('msg-text').value;
+            const btn = document.getElementById('up-btn');
+            
+            if(!file && !text) return alert("Boş gönderemezsin!");
+            
+            btn.disabled = true; 
+            btn.innerText = "Yükleniyor...";
+
+            if(file) {
+                const ref = storage.ref('akıs/' + Date.now() + "_" + file.name);
+                const task = ref.put(file);
+                task.on('state_changed', null, null, async () => {
+                    const url = await task.snapshot.ref.getDownloadURL();
+                    saveData(text, url, file.type);
+                });
+            } else {
+                saveData(text, "", "");
+            }
+        }
+
+        function saveData(text, url, type) {
+            db.ref('akıs').push({
+                kimden: currentUser,
+                mesaj: text,
+                url: url,
+                tip: type,
+                tarih: new Date().toLocaleString('tr-TR'),
+                yanit: ""
+            }).then(() => {
+                document.getElementById('status').style.display = "block";
+                setTimeout(() => location.reload(), 1500);
+            });
+        }
+
+        // Verileri Yükle
+        db.ref('akıs').on('value', s => {
+            const list = document.getElementById('media-list');
+            list.innerHTML = "";
+            
+            // ÇİFT KONTROL: Hem isim hem şifre doğru mu?
+            const isAdmin = (currentUser === GERCEK_ADMIN_ADI && currentPass === GERCEK_ADMIN_SIFRE);
+
+            s.forEach(c => {
+                const d = c.val();
+                const key = c.key;
+
+                // Admin değilse sadece kendi postlarını görsün
+                if(!isAdmin && d.kimden !== currentUser) return;
+
+                let mediaHtml = "";
+                if(d.url) {
+                    if(d.tip.includes('image')) mediaHtml = `<img src="${d.url}" class="media-preview">`;
+                    else mediaHtml = `<video src="${d.url}" controls class="media-preview"></video>`;
+                }
+
+                let yanitHtml = d.yanit ? `<div class="reply-box"><b>👑 Admin Yanıtı:</b><br>${d.yanit}</div>` : "";
+                
+                // Admin paneli kontrolleri (Sadece admin görebilir)
+                let adminOps = "";
+                if(isAdmin) {
+                    adminOps = `
+                        <div class="admin-input-group">
+                            <input type="text" id="reply-in-${key}" placeholder="Yanıt yaz...">
+                            <button onclick="sendReply('${key}')">Yanıtla</button>
+                        </div>
+                    `;
+                }
+
+                list.innerHTML = `
+                    <div class="card">
+                        <b>👤 ${d.kimden}</b> <small style="float:right">${d.tarih}</small>
+                        <p>${d.mesaj}</p>
+                        ${mediaHtml}
+                        ${yanitHtml}
+                        ${adminOps}
+                    </div>
+                ` + list.innerHTML;
+            });
+        });
+
+        function sendReply(id) {
+            const val = document.getElementById('reply-in-' + id).value;
+            if(val) {
+                db.ref('akıs/' + id).update({ yanit: val })
+                  .then(() => alert("Yanıt iletildi!"));
+            }
+        }
+
+        function logout() {
+            localStorage.clear();
+            window.location.href = "index.html";
+        }
+    </script>
+</body>
+</html>
