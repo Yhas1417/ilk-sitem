@@ -33,6 +33,9 @@
         .reply-input-area { margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px; }
         
         #progress-bar { width: 0%; height: 5px; background: var(--success); transition: 0.3s; }
+        
+        /* BİLDİRİM MESAJI */
+        #status-msg { margin-top: 10px; font-weight: bold; color: var(--success); display: none; }
     </style>
 </head>
 <body>
@@ -55,7 +58,7 @@
             <textarea id="msg-text" placeholder="Bir şeyler yaz..."></textarea>
             <label class="file-label">📂 Medya Seç <input type="file" id="file-input" style="display:none" accept="image/*,video/*"></label>
             <div id="prog-cont" style="background:#eee; height:5px; border-radius:5px; overflow:hidden;"><div id="progress-bar"></div></div>
-            <button id="send-btn" class="btn-blue" onclick="uploadData()">Paylaş</button>
+            <div id="status-msg"></div> <button id="send-btn" class="btn-blue" onclick="uploadData()">Paylaş</button>
         </div>
 
         <hr style="margin:25px 0; border:0; border-top:1px solid #eee;">
@@ -67,7 +70,7 @@
 </div>
 
 <script>
-    // --- FIREBASE AYARLARINI BURAYA YAPIŞTIR ---
+    // --- FIREBASE AYARLARI (Alt alta ve düzenli) ---
     const firebaseConfig = {
       apiKey: "AIzaSyArIYOp-msUGe_T4bLiVkoDhvXYhLuWVeo",
       authDomain: "test-sitem.firebaseapp.com",
@@ -75,16 +78,17 @@
       projectId: "test-sitem",
       storageBucket: "test-sitem.firebasestorage.app",
       messagingSenderId: "97147105273",
-      appId: "1:97147105273:web:6e70cf559735f68fb8d728"
+      appId: "1:97147105273:web:6e70cf559735f68fb8d728",
+      measurementId: "G-ETZLC279HD"
     };
-  measurementId: "G-ETZLC279HD" };
+    
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
     const storage = firebase.storage();
 
     // ADMIN AYARLARI
-    const OZEL_ADMIN_ADI = "Yusuf Hüsrev"; // Burayı değiştir
-    const OZEL_ADMIN_SIFRE = "1417admin1417"; // Burayı değiştir
+    const OZEL_ADMIN_ADI = "Yusuf Hüsrev"; 
+    const OZEL_ADMIN_SIFRE = "1417admin1417"; 
 
     function handleAuth(type) {
         const n = document.getElementById('user-name').value.trim();
@@ -114,16 +118,23 @@
         const text = document.getElementById('msg-text').value;
         const name = document.getElementById('display-name').innerText;
         const btn = document.getElementById('send-btn');
+        const status = document.getElementById('status-msg');
+
+        if(!file && !text) return alert("Bir şeyler yazın veya dosya seçin!");
 
         btn.disabled = true;
         btn.innerText = "Yükleniyor...";
+        status.style.display = "none";
 
         if(file) {
             const ref = storage.ref('medya/' + Date.now() + "_" + file.name);
             const task = ref.put(file);
             task.on('state_changed', (s) => {
                 document.getElementById('progress-bar').style.width = (s.bytesTransferred/s.totalBytes)*100 + "%";
-            }, null, async () => {
+            }, (err) => {
+                alert("Hata oluştu!");
+                btn.disabled = false;
+            }, async () => {
                 const url = await task.snapshot.ref.getDownloadURL();
                 save(name, text, url, file.type);
             });
@@ -131,14 +142,25 @@
     }
 
     function save(name, text, url, type) {
+        const status = document.getElementById('status-msg');
+        
         db.ref('akıs').push({
             kimden: name,
             mesaj: text,
             url: url,
             tip: type,
             tarih: new Date().toLocaleString('tr-TR'),
-            yanit: "" // Başta yanıt boş
-        }).then(() => location.reload());
+            yanit: "" 
+        }).then(() => {
+            // BAŞARI MESAJI BURADA ÇALIŞIYOR
+            status.innerText = url ? "✅ Fotoğraf/Video başarıyla yüklendi!" : "✅ Mesaj gönderildi!";
+            status.style.display = "block";
+            
+            // 3 saniye sonra sayfayı yenile ki mesajı görebilsinler
+            setTimeout(() => {
+                location.reload();
+            }, 2500);
+        });
     }
 
     function loadMedia(currentName, currentPass) {
@@ -149,7 +171,6 @@
                 const d = c.val();
                 const id = c.key;
                 
-                // Güvenlik: Admin herkesi görür, kullanıcı sadece kendini (veya istersen herkesi)
                 if(currentName !== OZEL_ADMIN_ADI && d.kimden !== currentName) return;
 
                 let media = "";
@@ -158,10 +179,8 @@
                     else media = `<video src="${d.url}" controls class="media-preview"></video>`;
                 }
 
-                // Yanıt varsa göster
                 let yanitHtml = d.yanit ? `<div class="reply-box"><b>👑 Admin Yanıtı:</b><br>${d.yanit}</div>` : "";
 
-                // Admin ise yanıt verme kutusu ekle
                 let adminKontrol = "";
                 if(currentName === OZEL_ADMIN_ADI && currentPass === OZEL_ADMIN_SIFRE) {
                     adminKontrol = `
@@ -189,7 +208,10 @@
         const text = document.getElementById('input-' + id).value;
         if(text) {
             db.ref('akıs/' + id).update({ yanit: text })
-              .then(() => alert("Yanıt gönderildi!"));
+              .then(() => {
+                  alert("Yanıt gönderildi!");
+                  document.getElementById('input-' + id).value = "";
+              });
         }
     }
 </script>
