@@ -3,212 +3,58 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Medya & Yanıt Portalı</title>
+    <title>Giriş Yap</title>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-storage-compat.js"></script>
-    
     <style>
-        :root { --primary: #1877f2; --success: #42b72a; --bg: #f0f2f5; --admin-msg: #fff9c4; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; padding: 10px; display: flex; justify-content: center; }
-        .container { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 500px; text-align: center; }
-        
-        input, textarea { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 10px; font-size: 16px; box-sizing: border-box; outline: none; }
-        .auth-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        
-        button { width: 100%; padding: 12px; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; transition: 0.2s; margin-top: 5px; }
-        .btn-blue { background: var(--primary); color: white; }
-        .btn-green { background: var(--success); color: white; }
-        .btn-reply { background: #65676b; color: white; font-size: 13px; padding: 8px; }
-        
-        .file-label { display: block; background: #f0f7ff; color: var(--primary); padding: 15px; border: 2px dashed var(--primary); border-radius: 12px; cursor: pointer; margin: 10px 0; font-weight: bold; }
-        .hidden { display: none; }
-        
-        .card { background: white; border-radius: 12px; padding: 15px; margin: 15px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1); text-align: left; border-left: 5px solid var(--primary); }
-        .media-preview { width: 100%; border-radius: 8px; margin-top: 10px; max-height: 400px; object-fit: contain; background: #f0f0f0; }
-        
-        .reply-box { background: var(--admin-msg); border: 1px solid #fbc02d; padding: 10px; border-radius: 8px; margin-top: 10px; font-size: 14px; }
-        .reply-input-area { margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px; }
-        
-        #progress-bar { width: 0%; height: 5px; background: var(--success); transition: 0.3s; }
-        #status-msg { margin-top: 10px; font-weight: bold; color: var(--success); display: none; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .container { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 90%; max-width: 400px; text-align: center; }
+        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; font-size: 16px; }
+        .btn-blue { width: 100%; padding: 14px; border: none; border-radius: 10px; background: #1877f2; color: white; font-weight: bold; cursor: pointer; }
+        .link { display: block; margin-top: 15px; color: #1877f2; text-decoration: none; font-size: 14px; }
     </style>
 </head>
 <body>
-
-<div class="container">
-    <div id="auth-page">
-        <h2>Giriş / Kayıt</h2>
+    <div class="container">
+        <h2>Giriş Yap</h2>
         <input type="text" id="user-name" placeholder="Kullanıcı Adı">
         <input type="password" id="user-pass" placeholder="Şifre">
-        <div class="auth-buttons">
-            <button class="btn-blue" onclick="handleAuth('login')">Giriş</button>
-            <button class="btn-green" onclick="handleAuth('register')">Kayıt</button>
-        </div>
+        <button class="btn-blue" onclick="login()">Giriş Yap</button>
+        <a href="kayit.html" class="link">Hesabın yok mu? Kayıt Ol</a>
     </div>
 
-    <div id="main-page" class="hidden">
-        <h3>Selam, <span id="display-name" style="color:var(--primary)"></span></h3>
-        
-        <div id="upload-section">
-            <textarea id="msg-text" placeholder="Bir şeyler yaz..."></textarea>
-            <label class="file-label">📂 Medya Seç <input type="file" id="file-input" style="display:none" accept="image/*,video/*"></label>
-            <div id="prog-cont" style="background:#eee; height:5px; border-radius:5px; overflow:hidden;"><div id="progress-bar"></div></div>
-            <div id="status-msg"></div>
-            <button id="send-btn" class="btn-blue" onclick="uploadData()">Paylaş</button>
-        </div>
+    <script>
+        const firebaseConfig = {
+          apiKey: "AIzaSyArIYOp-msUGe_T4bLiVkoDhvXYhLuWVeo",
+          authDomain: "test-sitem.firebaseapp.com",
+          databaseURL: "https://test-sitem-default-rtdb.europe-west1.firebasedatabase.app",
+          projectId: "test-sitem",
+          storageBucket: "test-sitem.firebasestorage.app",
+          messagingSenderId: "97147105273",
+          appId: "1:97147105273:web:6e70cf559735f68fb8d728",
+          measurementId: "G-ETZLC279HD"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
 
-        <hr style="margin:25px 0; border:0; border-top:1px solid #eee;">
-        <h4 style="text-align:left;">🖼️ Paylaşımlar</h4>
-        <div id="media-list"></div>
+        // Otomatik Giriş Kontrolü
+        window.onload = () => {
+            if(localStorage.getItem('user_name')) window.location.href = "panel.html";
+        };
 
-        <button onclick="logout()" style="background:#eee; color:#666; margin-top:30px;">Güvenli Çıkış (Hafızayı Sil)</button>
-    </div>
-</div>
+        function login() {
+            const n = document.getElementById('user-name').value.trim();
+            const p = document.getElementById('user-pass').value.trim();
+            if(!n || !p) return alert("Boş bırakma!");
 
-<script>
-    // --- FIREBASE AYARLARI (Alt alta) ---
-    const firebaseConfig = {
-      apiKey: "AIzaSyArIYOp-msUGe_T4bLiVkoDhvXYhLuWVeo",
-      authDomain: "test-sitem.firebaseapp.com",
-      databaseURL: "https://test-sitem-default-rtdb.europe-west1.firebasedatabase.app",
-      projectId: "test-sitem",
-      storageBucket: "test-sitem.firebasestorage.app",
-      messagingSenderId: "97147105273",
-      appId: "1:97147105273:web:6e70cf559735f68fb8d728",
-      measurementId: "G-ETZLC279HD"
-    };
-    
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
-    const storage = firebase.storage();
-
-    // ADMIN AYARLARI
-    const OZEL_ADMIN_ADI = "Yusuf Hüsrev"; 
-    const OZEL_ADMIN_SIFRE = "1417admin1417"; 
-
-    // --- OTOMATİK GİRİŞ KONTROLÜ (Sayfa açıldığında çalışır) ---
-    window.onload = function() {
-        const kaydedilmisAd = localStorage.getItem('user_name');
-        const kaydedilmisSifre = localStorage.getItem('user_pass');
-
-        if (kaydedilmisAd && kaydedilmisSifre) {
-            // Eğer hafızada bilgi varsa direkt içeri al
-            start(kaydedilmisAd, kaydedilmisSifre);
-        }
-    };
-
-    function handleAuth(type) {
-        const n = document.getElementById('user-name').value.trim();
-        const p = document.getElementById('user-pass').value.trim();
-        if(!n || !p) return alert("Eksik bilgi!");
-        
-        const ref = db.ref('users/' + n);
-        if(type === 'register') {
-            ref.set({password: p}).then(() => { 
-                alert("Kayıt oldu!"); 
-                kaydetVeBasla(n, p);
-            });
-        } else {
-            ref.once('value', s => {
+            db.ref('users/' + n).once('value', s => {
                 if(s.exists() && s.val().password === p) {
-                    kaydetVeBasla(n, p);
-                } else alert("Hata!");
+                    localStorage.setItem('user_name', n);
+                    localStorage.setItem('user_pass', p);
+                    window.location.href = "panel.html";
+                } else alert("Hatalı bilgiler!");
             });
         }
-    }
-
-    // Bilgileri tarayıcıya kaydetme fonksiyonu
-    function kaydetVeBasla(n, p) {
-        localStorage.setItem('user_name', n);
-        localStorage.setItem('user_pass', p);
-        start(n, p);
-    }
-
-    function start(n, p) {
-        document.getElementById('auth-page').classList.add('hidden');
-        document.getElementById('main-page').classList.remove('hidden');
-        document.getElementById('display-name').innerText = n;
-        loadMedia(n, p);
-    }
-
-    async function uploadData() {
-        const file = document.getElementById('file-input').files[0];
-        const text = document.getElementById('msg-text').value;
-        const name = document.getElementById('display-name').innerText;
-        const btn = document.getElementById('send-btn');
-        const status = document.getElementById('status-msg');
-
-        if(!file && !text) return alert("Bir şeyler yazın veya dosya seçin!");
-        btn.disabled = true;
-        btn.innerText = "Yükleniyor...";
-
-        if(file) {
-            const ref = storage.ref('medya/' + Date.now() + "_" + file.name);
-            const task = ref.put(file);
-            task.on('state_changed', (s) => {
-                document.getElementById('progress-bar').style.width = (s.bytesTransferred/s.totalBytes)*100 + "%";
-            }, null, async () => {
-                const url = await task.snapshot.ref.getDownloadURL();
-                save(name, text, url, file.type);
-            });
-        } else { save(name, text, "", ""); }
-    }
-
-    function save(name, text, url, type) {
-        const status = document.getElementById('status-msg');
-        db.ref('akıs').push({
-            kimden: name,
-            mesaj: text,
-            url: url,
-            tip: type,
-            tarih: new Date().toLocaleString('tr-TR'),
-            yanit: "" 
-        }).then(() => {
-            status.innerText = "✅ Başarıyla yüklendi!";
-            status.style.display = "block";
-            setTimeout(() => { location.reload(); }, 2000);
-        });
-    }
-
-    function loadMedia(currentName, currentPass) {
-        db.ref('akıs').on('value', s => {
-            const list = document.getElementById('media-list');
-            list.innerHTML = "";
-            s.forEach(c => {
-                const d = c.val();
-                const id = c.key;
-                if(currentName !== OZEL_ADMIN_ADI && d.kimden !== currentName) return;
-
-                let media = "";
-                if(d.url) {
-                    if(d.tip.includes('image')) media = `<img src="${d.url}" class="media-preview">`;
-                    else media = `<video src="${d.url}" controls class="media-preview"></video>`;
-                }
-
-                let yanitHtml = d.yanit ? `<div class="reply-box"><b>👑 Admin Yanıtı:</b><br>${d.yanit}</div>` : "";
-                let adminKontrol = "";
-                if(currentName === OZEL_ADMIN_ADI && currentPass === OZEL_ADMIN_SIFRE) {
-                    adminKontrol = `<div class="reply-input-area"><input type="text" id="input-${id}" placeholder="Yanıtla..."><button class="btn-reply" onclick="sendReply('${id}')">Gönder</button></div>`;
-                }
-
-                list.innerHTML = `<div class="card"><b>👤 ${d.kimden}</b> <small style="float:right">${d.tarih}</small><p>${d.mesaj}</p>${media}${yanitHtml}${adminKontrol}</div>` + list.innerHTML;
-            });
-        });
-    }
-
-    function sendReply(id) {
-        const text = document.getElementById('input-' + id).value;
-        if(text) {
-            db.ref('akıs/' + id).update({ yanit: text }).then(() => alert("Yanıtlandı!"));
-        }
-    }
-
-    // ÇIKIŞ YAPINCA HAFIZAYI TEMİZLE
-    function logout() {
-        localStorage.clear(); // Tarayıcıdaki tüm giriş bilgilerini siler
-        location.reload();    // Sayfayı yeniler ve giriş ekranına atar
-    }
-</script>
+    </script>
 </body>
 </html>
