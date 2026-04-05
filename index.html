@@ -2,125 +2,68 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Mobil Uyumlu Hobi Sitem</title>
-    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Medya Paylaşım Portalı</title>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-storage-compat.js"></script>
     
     <style>
-        /* GENEL AYARLAR */
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
-            background: #f0f2f5; 
-            display: flex; 
-            justify-content: center; 
-            align-items: flex-start; 
-            min-height: 100vh;
-            margin: 0; 
-            padding: 20px;
-            box-sizing: border-box;
-        }
-
-        /* KONTEYNER: Mobilde %95, Tablete %80 genişlik */
-        .container { 
-            background: white; 
-            padding: 25px; 
-            border-radius: 20px; 
-            box-shadow: 0 4px 15px rgba(0,0,0,0.08); 
-            width: 100%; 
-            max-width: 500px; /* Masaüstünde çok yayılmasın */
-            text-align: center; 
-        }
-
-        h2 { color: #1c1e21; font-size: 1.5rem; margin-bottom: 20px; }
-
-        /* GİRDİ ALANLARI: Mobilde daha büyük dokunma alanı */
-        input, textarea { 
-            width: 100%; 
-            padding: 14px; 
-            margin: 8px 0; 
-            border: 1px solid #ddd; 
-            border-radius: 12px; 
-            box-sizing: border-box; 
-            font-size: 16px; /* Mobilde klavyenin zoom yapmasını engeller */
-            outline: none;
-            transition: border 0.3s;
-        }
+        :root { --primary: #1877f2; --bg: #f0f2f5; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; padding: 15px; display: flex; justify-content: center; }
+        .container { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 450px; text-align: center; }
         
-        input:focus, textarea:focus { border-color: #1877f2; }
-
-        /* BUTONLAR: Daha büyük ve yuvarlak */
-        button { 
-            width: 100%; 
-            padding: 15px; 
-            border: none; 
-            border-radius: 12px; 
-            cursor: pointer; 
-            font-weight: bold; 
-            margin-top: 10px; 
-            font-size: 16px;
-            transition: opacity 0.2s;
-        }
-
-        .btn-blue { background: #1877f2; color: white; }
-        .btn-green { background: #42b72a; color: white; }
-        .btn-red { background: #f02849; color: white; margin-top: 20px; }
-        button:active { opacity: 0.8; }
-
+        input, textarea { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 10px; font-size: 16px; box-sizing: border-box; }
+        .file-label { display: block; background: #eef5ff; color: var(--primary); padding: 15px; border: 2px dashed var(--primary); border-radius: 12px; cursor: pointer; margin: 10px 0; font-weight: bold; }
+        
+        button { width: 100%; padding: 14px; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; font-size: 16px; margin-top: 10px; }
+        .btn-blue { background: var(--primary); color: white; }
         .hidden { display: none; }
-
-        /* MESAJ KUTUSU: Mobilde daha okunaklı */
-        .msg-box { 
-            background: #f8f9fa; 
-            border-left: 6px solid #1877f2; 
-            padding: 15px; 
-            margin: 12px 0; 
-            border-radius: 10px; 
-            text-align: left; 
-            font-size: 15px;
-            word-wrap: break-word; /* Uzun kelimeleri böler, ekranı kaydırmaz */
-        }
-
-        .link { color: #1877f2; cursor: pointer; font-weight: 600; text-decoration: none; }
         
-        /* TABLET VE TELEFON ÖZEL AYARI */
-        @media (max-width: 480px) {
-            body { padding: 10px; }
-            .container { padding: 20px; border-radius: 15px; }
-            h2 { font-size: 1.2rem; }
-        }
+        .card { background: white; border-radius: 12px; padding: 15px; margin: 15px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1); text-align: left; }
+        .media-preview { width: 100%; border-radius: 8px; margin-top: 10px; max-height: 300px; object-fit: cover; }
+        #progress-bar { width: 0%; height: 5px; background: #42b72a; transition: 0.3s; border-radius: 5px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <div id="auth-area">
-        <h2 id="auth-title">Giriş Yap</h2>
+    <div id="auth-page">
+        <h2>Giriş Yap</h2>
         <input type="text" id="user-name" placeholder="Kullanıcı Adı">
         <input type="password" id="user-pass" placeholder="Şifre">
-        <button class="btn-blue" id="main-btn" onclick="login()">Giriş Yap</button>
-        <p id="toggle-text">Hesabın yok mu? <span class="link" onclick="toggleAuth()">Kayıt Ol</span></p>
+        <button class="btn-blue" onclick="login()">Giriş / Kayıt</button>
     </div>
 
-    <div id="user-panel" class="hidden">
-        <h2>Hoş Geldin, <span id="display-name" style="color: #1877f2;"></span></h2>
+    <div id="main-page" class="hidden">
+        <h3>Merhaba, <span id="display-name" style="color:var(--primary)"></span></h3>
         
-        <textarea id="user-msg" placeholder="Bir şeyler yaz..." rows="3"></textarea>
-        <button class="btn-green" onclick="sendMessage()">Mesajı Gönder</button>
-
-        <div id="admin-only" class="hidden">
-            <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
-            <h3 style="font-size: 1.1rem; color: #65676b;">📬 Gelen Mesajlar</h3>
-            <div id="all-messages" style="max-height: 300px; overflow-y: auto;"></div>
+        <div id="upload-area">
+            <textarea id="msg-text" placeholder="Mesajınız..."></textarea>
+            
+            <label class="file-label">
+                📷 Fotoğraf veya 🎥 Video Seç
+                <input type="file" id="file-input" style="display:none" accept="image/*,video/*">
+            </label>
+            <div id="progress-container" style="background:#eee; border-radius:5px; margin:5px 0;">
+                <div id="progress-bar"></div>
+            </div>
+            
+            <button id="send-btn" class="btn-blue" onclick="uploadData()">Gönder</button>
         </div>
 
-        <button class="btn-red" onclick="logout()">Çıkış Yap</button>
+        <div id="admin-view" class="hidden">
+            <hr>
+            <h4>📩 Gelen Medyalar</h4>
+            <div id="media-list"></div>
+        </div>
+
+        <button onclick="location.reload()" style="background:#ddd; margin-top:20px;">Çıkış Yap</button>
     </div>
 </div>
 
 <script>
-    // --- FIREBASE AYARLARINI BURAYA YAPIŞTIR ---
+    // --- FIREBASE CONFIG (Kendi bilgilerini buraya koy!) ---
     const firebaseConfig = {
         apiKey: "AIzaSyArIYOp-msUGe_T4bLiVkoDhvXYhLuWVeo",
         authDomain: "test-sitem.firebaseapp.com",
@@ -133,78 +76,97 @@
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
-
-    // --- ADMIN BİLGİLERİN ---
-    const OZEL_ADMIN_ADI = "Yusuf Hüsrev"; 
-    const OZEL_ADMIN_SIFRE = "1417admin1417"; 
-
-    let isLoginMode = true;
-
-    function toggleAuth() {
-        isLoginMode = !isLoginMode;
-        document.getElementById('auth-title').innerText = isLoginMode ? "Giriş Yap" : "Kayıt Ol";
-        document.getElementById('main-btn').innerText = isLoginMode ? "Giriş Yap" : "Kayıt Ol";
-        document.getElementById('toggle-text').innerHTML = isLoginMode ? 
-            'Hesabın yok mu? <span class="link" onclick="toggleAuth()">Kayıt Ol</span>' : 
-            'Zaten hesabın var mı? <span class="link" onclick="toggleAuth()">Giriş Yap</span>';
-    }
+    const storage = firebase.storage();
 
     function login() {
-        const name = document.getElementById('user-name').value.trim();
-        const pass = document.getElementById('user-pass').value.trim();
-        if(!name || !pass) { alert("Lütfen alanları doldur!"); return; }
+        const n = document.getElementById('Yusuf Hüsrev').value;
+        const p = document.getElementById('1417admin1417').value;
+        if(!n || !p) return;
 
-        if(isLoginMode) {
-            db.ref('users/' + name).once('value', (snap) => {
-                if(snap.exists() && snap.val().password === pass) {
-                    showPanel(name, pass);
-                } else { alert("Hatalı bilgi!"); }
-            });
-        } else {
-            db.ref('users/' + name).set({ password: pass }, (err) => {
-                if(!err) { alert("Kayıt başarılı! Şimdi giriş yap."); toggleAuth(); }
-            });
-        }
-    }
-
-    function showPanel(username, password) {
-        document.getElementById('auth-area').classList.add('hidden');
-        document.getElementById('user-panel').classList.remove('hidden');
-        document.getElementById('display-name').innerText = username;
-
-        if(username === OZEL_ADMIN_ADI && password === OZEL_ADMIN_SIFRE) {
-            document.getElementById('admin-only').classList.remove('hidden');
-            loadAllMessages();
-        }
-    }
-
-    function sendMessage() {
-        const msg = document.getElementById('user-msg').value;
-        const name = document.getElementById('display-name').innerText;
-        if(msg.trim()) {
-            db.ref('mesajlar').push({
-                from: name,
-                text: msg,
-                time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
-            });
-            alert("İletildi!");
-            document.getElementById('user-msg').value = "";
-        }
-    }
-
-    function loadAllMessages() {
-        db.ref('mesajlar').on('value', (snap) => {
-            const area = document.getElementById('all-messages');
-            area.innerHTML = "";
-            snap.forEach((child) => {
-                const data = child.val();
-                area.innerHTML = `<div class="msg-box"><strong>${data.from}:</strong> ${data.text}<br><small style="color:#999">${data.time}</small></div>` + area.innerHTML;
-            });
+        db.ref('users/' + n).once('value', s => {
+            if(s.exists() && s.val().password === p) start(n);
+            else if(!s.exists()) db.ref('users/' + n).set({password: p}).then(()=>start(n));
+            else alert("Hata!");
         });
     }
 
-    function logout() { location.reload(); }
-</script>
+    function start(n) {
+        document.getElementById('auth-page').classList.add('hidden');
+        document.getElementById('main-page').classList.remove('hidden');
+        document.getElementById('display-name').innerText = n;
+        if(n === "admin") {
+            document.getElementById('admin-view').classList.remove('hidden');
+            loadMedia();
+        }
+    }
 
+    async function uploadData() {
+        const file = document.getElementById('file-input').files[0];
+        const text = document.getElementById('msg-text').value;
+        const name = document.getElementById('display-name').innerText;
+        const btn = document.getElementById('send-btn');
+
+        if(!file && !text) return alert("Dosya veya mesaj seçin!");
+        
+        btn.disabled = true;
+        btn.innerText = "Yükleniyor...";
+
+        let fileUrl = "";
+
+        if(file) {
+            const storageRef = storage.ref('medya/' + Date.now() + "_" + file.name);
+            const uploadTask = storageRef.put(file);
+
+            uploadTask.on('state_changed', 
+                (snap) => {
+                    const prog = (snap.bytesTransferred / snap.totalBytes) * 100;
+                    document.getElementById('progress-bar').style.width = prog + "%";
+                }, 
+                (err) => alert("Yükleme hatası!"), 
+                async () => {
+                    fileUrl = await uploadTask.snapshot.ref.getDownloadURL();
+                    saveToDb(name, text, fileUrl, file.type);
+                }
+            );
+        } else {
+            saveToDb(name, text, "", "");
+        }
+    }
+
+    function saveToDb(name, text, url, type) {
+        db.ref('paylasimlar').push({
+            kimden: name,
+            mesaj: text,
+            medyaUrl: url,
+            medyaTipi: type,
+            tarih: new Date().toLocaleString()
+        }).then(() => {
+            alert("Başarıyla gönderildi!");
+            location.reload();
+        });
+    }
+
+    function loadMedia() {
+        db.ref('paylasimlar').on('value', s => {
+            const list = document.getElementById('media-list');
+            list.innerHTML = "";
+            s.forEach(c => {
+                const d = c.val();
+                let mediaHtml = "";
+                if(d.medyaUrl) {
+                    if(d.medyaTipi.includes('image')) mediaHtml = `<img src="${d.medyaUrl}" class="media-preview">`;
+                    else if(d.medyaTipi.includes('video')) mediaHtml = `<video src="${d.medyaUrl}" controls class="media-preview"></video>`;
+                }
+                list.innerHTML = `
+                    <div class="card">
+                        <b>👤 ${d.kimden}</b> <small>${d.tarih}</small><br>
+                        <p>${d.mesaj}</p>
+                        ${mediaHtml}
+                    </div>
+                ` + list.innerHTML;
+            });
+        });
+    }
+</script>
 </body>
 </html>
