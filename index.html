@@ -24,17 +24,13 @@
         .file-label { display: block; background: #f0f7ff; color: var(--primary); padding: 15px; border: 2px dashed var(--primary); border-radius: 12px; cursor: pointer; margin: 10px 0; font-weight: bold; }
         .hidden { display: none; }
         
-        /* KART TASARIMI */
         .card { background: white; border-radius: 12px; padding: 15px; margin: 15px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1); text-align: left; border-left: 5px solid var(--primary); }
         .media-preview { width: 100%; border-radius: 8px; margin-top: 10px; max-height: 400px; object-fit: contain; background: #f0f0f0; }
         
-        /* YANIT KUTUSU */
         .reply-box { background: var(--admin-msg); border: 1px solid #fbc02d; padding: 10px; border-radius: 8px; margin-top: 10px; font-size: 14px; }
         .reply-input-area { margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px; }
         
         #progress-bar { width: 0%; height: 5px; background: var(--success); transition: 0.3s; }
-        
-        /* BİLDİRİM MESAJI */
         #status-msg { margin-top: 10px; font-weight: bold; color: var(--success); display: none; }
     </style>
 </head>
@@ -58,19 +54,20 @@
             <textarea id="msg-text" placeholder="Bir şeyler yaz..."></textarea>
             <label class="file-label">📂 Medya Seç <input type="file" id="file-input" style="display:none" accept="image/*,video/*"></label>
             <div id="prog-cont" style="background:#eee; height:5px; border-radius:5px; overflow:hidden;"><div id="progress-bar"></div></div>
-            <div id="status-msg"></div> <button id="send-btn" class="btn-blue" onclick="uploadData()">Paylaş</button>
+            <div id="status-msg"></div>
+            <button id="send-btn" class="btn-blue" onclick="uploadData()">Paylaş</button>
         </div>
 
         <hr style="margin:25px 0; border:0; border-top:1px solid #eee;">
         <h4 style="text-align:left;">🖼️ Paylaşımlar</h4>
         <div id="media-list"></div>
 
-        <button onclick="location.reload()" style="background:#eee; color:#666; margin-top:30px;">Güvenli Çıkış</button>
+        <button onclick="logout()" style="background:#eee; color:#666; margin-top:30px;">Güvenli Çıkış (Hafızayı Sil)</button>
     </div>
 </div>
 
 <script>
-    // --- FIREBASE AYARLARI (Alt alta ve düzenli) ---
+    // --- FIREBASE AYARLARI (Alt alta) ---
     const firebaseConfig = {
       apiKey: "AIzaSyArIYOp-msUGe_T4bLiVkoDhvXYhLuWVeo",
       authDomain: "test-sitem.firebaseapp.com",
@@ -90,6 +87,17 @@
     const OZEL_ADMIN_ADI = "Yusuf Hüsrev"; 
     const OZEL_ADMIN_SIFRE = "1417admin1417"; 
 
+    // --- OTOMATİK GİRİŞ KONTROLÜ (Sayfa açıldığında çalışır) ---
+    window.onload = function() {
+        const kaydedilmisAd = localStorage.getItem('user_name');
+        const kaydedilmisSifre = localStorage.getItem('user_pass');
+
+        if (kaydedilmisAd && kaydedilmisSifre) {
+            // Eğer hafızada bilgi varsa direkt içeri al
+            start(kaydedilmisAd, kaydedilmisSifre);
+        }
+    };
+
     function handleAuth(type) {
         const n = document.getElementById('user-name').value.trim();
         const p = document.getElementById('user-pass').value.trim();
@@ -97,13 +105,24 @@
         
         const ref = db.ref('users/' + n);
         if(type === 'register') {
-            ref.set({password: p}).then(() => { alert("Kayıt oldu!"); start(n, p); });
+            ref.set({password: p}).then(() => { 
+                alert("Kayıt oldu!"); 
+                kaydetVeBasla(n, p);
+            });
         } else {
             ref.once('value', s => {
-                if(s.exists() && s.val().password === p) start(n, p);
-                else alert("Hata!");
+                if(s.exists() && s.val().password === p) {
+                    kaydetVeBasla(n, p);
+                } else alert("Hata!");
             });
         }
+    }
+
+    // Bilgileri tarayıcıya kaydetme fonksiyonu
+    function kaydetVeBasla(n, p) {
+        localStorage.setItem('user_name', n);
+        localStorage.setItem('user_pass', p);
+        start(n, p);
     }
 
     function start(n, p) {
@@ -121,20 +140,15 @@
         const status = document.getElementById('status-msg');
 
         if(!file && !text) return alert("Bir şeyler yazın veya dosya seçin!");
-
         btn.disabled = true;
         btn.innerText = "Yükleniyor...";
-        status.style.display = "none";
 
         if(file) {
             const ref = storage.ref('medya/' + Date.now() + "_" + file.name);
             const task = ref.put(file);
             task.on('state_changed', (s) => {
                 document.getElementById('progress-bar').style.width = (s.bytesTransferred/s.totalBytes)*100 + "%";
-            }, (err) => {
-                alert("Hata oluştu!");
-                btn.disabled = false;
-            }, async () => {
+            }, null, async () => {
                 const url = await task.snapshot.ref.getDownloadURL();
                 save(name, text, url, file.type);
             });
@@ -143,7 +157,6 @@
 
     function save(name, text, url, type) {
         const status = document.getElementById('status-msg');
-        
         db.ref('akıs').push({
             kimden: name,
             mesaj: text,
@@ -152,14 +165,9 @@
             tarih: new Date().toLocaleString('tr-TR'),
             yanit: "" 
         }).then(() => {
-            // BAŞARI MESAJI BURADA ÇALIŞIYOR
-            status.innerText = url ? "✅ Fotoğraf/Video başarıyla yüklendi!" : "✅ Mesaj gönderildi!";
+            status.innerText = "✅ Başarıyla yüklendi!";
             status.style.display = "block";
-            
-            // 3 saniye sonra sayfayı yenile ki mesajı görebilsinler
-            setTimeout(() => {
-                location.reload();
-            }, 2500);
+            setTimeout(() => { location.reload(); }, 2000);
         });
     }
 
@@ -170,7 +178,6 @@
             s.forEach(c => {
                 const d = c.val();
                 const id = c.key;
-                
                 if(currentName !== OZEL_ADMIN_ADI && d.kimden !== currentName) return;
 
                 let media = "";
@@ -180,26 +187,12 @@
                 }
 
                 let yanitHtml = d.yanit ? `<div class="reply-box"><b>👑 Admin Yanıtı:</b><br>${d.yanit}</div>` : "";
-
                 let adminKontrol = "";
                 if(currentName === OZEL_ADMIN_ADI && currentPass === OZEL_ADMIN_SIFRE) {
-                    adminKontrol = `
-                        <div class="reply-input-area">
-                            <input type="text" id="input-${id}" placeholder="Yanıt yazın...">
-                            <button class="btn-reply" onclick="sendReply('${id}')">Yanıtla</button>
-                        </div>
-                    `;
+                    adminKontrol = `<div class="reply-input-area"><input type="text" id="input-${id}" placeholder="Yanıtla..."><button class="btn-reply" onclick="sendReply('${id}')">Gönder</button></div>`;
                 }
 
-                list.innerHTML = `
-                    <div class="card">
-                        <b>👤 ${d.kimden}</b> <small style="float:right">${d.tarih}</small>
-                        <p>${d.mesaj}</p>
-                        ${media}
-                        ${yanitHtml}
-                        ${adminKontrol}
-                    </div>
-                ` + list.innerHTML;
+                list.innerHTML = `<div class="card"><b>👤 ${d.kimden}</b> <small style="float:right">${d.tarih}</small><p>${d.mesaj}</p>${media}${yanitHtml}${adminKontrol}</div>` + list.innerHTML;
             });
         });
     }
@@ -207,12 +200,14 @@
     function sendReply(id) {
         const text = document.getElementById('input-' + id).value;
         if(text) {
-            db.ref('akıs/' + id).update({ yanit: text })
-              .then(() => {
-                  alert("Yanıt gönderildi!");
-                  document.getElementById('input-' + id).value = "";
-              });
+            db.ref('akıs/' + id).update({ yanit: text }).then(() => alert("Yanıtlandı!"));
         }
+    }
+
+    // ÇIKIŞ YAPINCA HAFIZAYI TEMİZLE
+    function logout() {
+        localStorage.clear(); // Tarayıcıdaki tüm giriş bilgilerini siler
+        location.reload();    // Sayfayı yeniler ve giriş ekranına atar
     }
 </script>
 </body>
