@@ -8,31 +8,51 @@
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-storage-compat.js"></script>
     <style>
-        :root { --primary: #1877f2; --bg: #f0f2f5; --admin-bg: #fff9c4; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; padding: 20px; display: flex; justify-content: center; }
-        .logout-btn { position: fixed; top: 15px; right: 15px; background: #ff4757; color: white; border: none; padding: 8px 15px; border-radius: 8px; cursor: pointer; z-index: 1000; font-weight: bold; }
-        .container { background: white; padding: 20px; border-radius: 20px; width: 100%; max-width: 500px; margin-top: 40px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        textarea { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd; margin: 10px 0; box-sizing: border-box; font-size: 16px; outline: none; }
+        :root { --primary: #1877f2; --bg: #f0f2f5; --admin-bg: #fff9c4; --success: #42b72a; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; padding: 10px; display: flex; justify-content: center; }
+        .logout-btn { position: fixed; top: 10px; right: 10px; background: #ff4757; color: white; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; z-index: 1000; font-size: 13px; font-weight: bold; }
+        .container { background: white; padding: 20px; border-radius: 20px; width: 100%; max-width: 500px; margin-top: 50px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        
+        /* 1000 KARAKTER SINIRI İÇİN TEXTAREA */
+        textarea { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd; margin: 10px 0; box-sizing: border-box; font-size: 16px; outline: none; resize: vertical; }
+        
         .file-label { display: block; background: #f0f7ff; padding: 15px; border: 2px dashed var(--primary); border-radius: 12px; cursor: pointer; font-weight: bold; color: var(--primary); margin: 10px 0; }
         .card { background: white; border-radius: 12px; padding: 15px; margin: 15px 0; border-left: 5px solid var(--primary); box-shadow: 0 2px 5px rgba(0,0,0,0.05); text-align: left; }
         .media-preview { width: 100%; border-radius: 8px; margin-top: 10px; max-height: 400px; object-fit: contain; background: #f9f9f9; }
         .reply-box { background: var(--admin-bg); border: 1px solid #fbc02d; padding: 10px; border-radius: 8px; margin-top: 10px; font-size: 14px; }
+        
         .admin-input-group { margin-top: 10px; display: flex; gap: 5px; }
         .admin-input-group input { flex: 1; padding: 8px; border-radius: 5px; border: 1px solid #ccc; }
-        .admin-input-group button { background: #65676b; color: white; border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer; }
+        .admin-input-group button { background: #65676b; color: white; border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer; font-size: 13px; }
+        
+        #progress-bar { width: 0%; height: 5px; background: var(--success); transition: 0.3s; }
+        #status-msg { margin-top: 10px; font-weight: bold; color: var(--success); display: none; }
+        
+        button#up-btn { width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; }
+        button#up-btn:disabled { background: #ccc; cursor: not-allowed; }
     </style>
 </head>
 <body>
+
     <button class="logout-btn" onclick="logout()">Oturumu Kapat</button>
 
     <div class="container">
         <h3>Hoş Geldin, <span id="display-name" style="color:var(--primary)"></span></h3>
         
         <div id="upload-area">
-            <textarea id="msg-text" placeholder="Bir şeyler yaz..."></textarea>
-            <label class="file-label">📂 Fotoğraf / Video Seç <input type="file" id="file-input" style="display:none" accept="image/*,video/*"></label>
-            <button onclick="upload()" id="up-btn" style="width:100%; padding:14px; background:var(--primary); color:white; border:none; border-radius:10px; font-weight:bold; cursor:pointer;">Paylaş</button>
-            <p id="status" style="color:green; display:none; font-weight:bold; margin-top:10px;">✅ Başarıyla gönderildi!</p>
+            <textarea id="msg-text" placeholder="Bir şeyler yaz... (Maks. 1000 karakter)" maxlength="1000"></textarea>
+            
+            <label class="file-label">
+                📂 Fotoğraf / 1 Dakikalık Video Seç 
+                <input type="file" id="file-input" style="display:none" accept="image/*,video/*">
+            </label>
+            
+            <div id="prog-cont" style="background:#eee; height:5px; border-radius:5px; overflow:hidden; margin-bottom: 10px;">
+                <div id="progress-bar"></div>
+            </div>
+            
+            <div id="status-msg"></div>
+            <button onclick="checkAndUpload()" id="up-btn">Paylaş</button>
         </div>
 
         <hr style="margin:25px 0; border:0; border-top:1px solid #eee;">
@@ -41,16 +61,17 @@
     </div>
 
     <script>
-        // --- FIREBASE CONFIG (Alt alta) ---
+        // --- FIREBASE CONFIG ---
         const firebaseConfig = {
-          apiKey: "AIzaSyArIYOp-msUGe_T4bLiVkoDhvXYhLuWVeo",
-          authDomain: "test-sitem.firebaseapp.com",
-          databaseURL: "https://test-sitem-default-rtdb.europe-west1.firebasedatabase.app",
-          projectId: "test-sitem",
-          storageBucket: "test-sitem.firebasestorage.app",
-          messagingSenderId: "97147105273",
-          appId: "1:97147105273:web:6e70cf559735f68fb8d728",
-          measurementId: "G-ETZLC279HD"
+            const firebaseConfig = {
+            apiKey: "AIzaSyArIYOp-msUGe_T4bLiVkoDhvXYhLuWVeo",
+            authDomain: "test-sitem.firebaseapp.com",
+            databaseURL: "https://test-sitem-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "test-sitem",
+            storageBucket: "test-sitem.firebasestorage.app",
+            messagingSenderId: "97147105273",
+            appId: "1:97147105273:web:6e70cf559735f68fb8d728",
+            measurementId: "G-ETZLC279HD"
         };
         
         firebase.initializeApp(firebaseConfig);
@@ -61,31 +82,78 @@
         const GERCEK_ADMIN_ADI = "Yusuf Hüsrev"; 
         const GERCEK_ADMIN_SIFRE = "1417admin1417"; 
 
-        // LocalStorage'dan giriş bilgilerini al
         const currentUser = localStorage.getItem('user_name');
         const currentPass = localStorage.getItem('user_pass');
 
-        // Giriş yapılmamışsa index'e at
         if(!currentUser) {
             window.location.href = "index.html";
         } else {
             document.getElementById('display-name').innerText = currentUser;
         }
 
-        async function upload() {
+        // --- ANA YÜKLEME KONTROL FONKSİYONU ---
+        async function checkAndUpload() {
             const file = document.getElementById('file-input').files[0];
-            const text = document.getElementById('msg-text').value;
+            const text = document.getElementById('msg-text').value.trim();
             const btn = document.getElementById('up-btn');
             
             if(!file && !text) return alert("Boş gönderemezsin!");
+
+            // 1. GÜNLÜK 3 MESAJ KISITLAMASI KONTROLÜ
+            const bugun = new Date().toLocaleDateString('tr-TR');
+            const isAdmin = (currentUser === GERCEK_ADMIN_ADI && currentPass === GERCEK_ADMIN_SIFRE);
             
-            btn.disabled = true; 
+            if (!isAdmin) {
+                const snapshot = await db.ref('akıs').orderByChild('kimden').equalTo(currentUser).once('value');
+                let bugunkuMesajSayisi = 0;
+                snapshot.forEach(child => {
+                    if(child.val().tarih && child.val().tarih.includes(bugun)) {
+                        bugunkuMesajSayisi++;
+                    }
+                });
+
+                if (bugunkuMesajSayisi >= 3) {
+                    alert("Günlük mesaj limitine ulaştınız (Maksimum 3). Yarın tekrar deneyebilirsiniz!");
+                    return;
+                }
+            }
+
+            // 2. VİDEO SÜRESİ KISITLAMASI (1 DAKİKA)
+            if (file && file.type.includes('video')) {
+                btn.disabled = true;
+                btn.innerText = "Süre kontrol ediliyor...";
+                
+                const video = document.createElement('video');
+                video.preload = 'metadata';
+                video.onloadedmetadata = function() {
+                    window.URL.revokeObjectURL(video.src);
+                    if (video.duration > 60) {
+                        alert("Hata: Video 1 dakikadan (60 saniye) uzun olamaz!");
+                        btn.disabled = false;
+                        btn.innerText = "Paylaş";
+                    } else {
+                        proceedUpload(file, text);
+                    }
+                };
+                video.src = URL.createObjectURL(file);
+            } else {
+                proceedUpload(file, text);
+            }
+        }
+
+        async function proceedUpload(file, text) {
+            const btn = document.getElementById('up-btn');
+            btn.disabled = true;
             btn.innerText = "Yükleniyor...";
 
             if(file) {
                 const ref = storage.ref('akıs/' + Date.now() + "_" + file.name);
                 const task = ref.put(file);
-                task.on('state_changed', null, null, async () => {
+                
+                task.on('state_changed', (snap) => {
+                    const prog = (snap.bytesTransferred / snap.totalBytes) * 100;
+                    document.getElementById('progress-bar').style.width = prog + "%";
+                }, null, async () => {
                     const url = await task.snapshot.ref.getDownloadURL();
                     saveData(text, url, file.type);
                 });
@@ -103,24 +171,20 @@
                 tarih: new Date().toLocaleString('tr-TR'),
                 yanit: ""
             }).then(() => {
-                document.getElementById('status').style.display = "block";
+                document.getElementById('status-msg').innerText = "✅ Başarıyla paylaşıldı!";
+                document.getElementById('status-msg').style.display = "block";
                 setTimeout(() => location.reload(), 1500);
             });
         }
 
-        // Verileri Yükle
+        // Verileri Listele
         db.ref('akıs').on('value', s => {
             const list = document.getElementById('media-list');
             list.innerHTML = "";
-            
-            // ÇİFT KONTROL: Hem isim hem şifre doğru mu?
             const isAdmin = (currentUser === GERCEK_ADMIN_ADI && currentPass === GERCEK_ADMIN_SIFRE);
 
             s.forEach(c => {
                 const d = c.val();
-                const key = c.key;
-
-                // Admin değilse sadece kendi postlarını görsün
                 if(!isAdmin && d.kimden !== currentUser) return;
 
                 let mediaHtml = "";
@@ -130,25 +194,13 @@
                 }
 
                 let yanitHtml = d.yanit ? `<div class="reply-box"><b>👑 Admin Yanıtı:</b><br>${d.yanit}</div>` : "";
-                
-                // Admin paneli kontrolleri (Sadece admin görebilir)
-                let adminOps = "";
-                if(isAdmin) {
-                    adminOps = `
-                        <div class="admin-input-group">
-                            <input type="text" id="reply-in-${key}" placeholder="Yanıt yaz...">
-                            <button onclick="sendReply('${key}')">Yanıtla</button>
-                        </div>
-                    `;
-                }
+                let adminOps = isAdmin ? `<div class="admin-input-group"><input type="text" id="reply-in-${c.key}" placeholder="Yanıtla..."><button onclick="sendReply('${c.key}')">Gönder</button></div>` : "";
 
                 list.innerHTML = `
                     <div class="card">
                         <b>👤 ${d.kimden}</b> <small style="float:right">${d.tarih}</small>
                         <p>${d.mesaj}</p>
-                        ${mediaHtml}
-                        ${yanitHtml}
-                        ${adminOps}
+                        ${mediaHtml}${yanitHtml}${adminOps}
                     </div>
                 ` + list.innerHTML;
             });
@@ -157,8 +209,7 @@
         function sendReply(id) {
             const val = document.getElementById('reply-in-' + id).value;
             if(val) {
-                db.ref('akıs/' + id).update({ yanit: val })
-                  .then(() => alert("Yanıt iletildi!"));
+                db.ref('akıs/' + id).update({ yanit: val }).then(() => alert("Yanıt iletildi!"));
             }
         }
 
