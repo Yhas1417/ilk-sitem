@@ -59,15 +59,32 @@
         function login() {
             const email = document.getElementById('user-email').value.trim();
             const pass = document.getElementById('user-pass').value.trim();
-            auth.signInWithEmailAndPassword(email, pass).then((res) => {
-                if(res.user.emailVerified) {
-                    db.ref('profiles/' + res.user.uid).once('value', s => {
-                        localStorage.setItem('user_name', s.exists() ? s.val().username : "Kullanıcı");
-                        localStorage.setItem('user_pass', pass);
-                        window.location.href = "panel.html";
-                    });
-                } else { alert("Lütfen mailinizi onaylayın!"); auth.signOut(); }
-            }).catch(e => alert(e.message));
+        
+            if(!email || !pass) return alert("E-posta ve şifre giriniz!");
+        
+            auth.signInWithEmailAndPassword(email, pass)
+                .then((userCredential) => {
+                    const user = userCredential.user;
+        
+                    if(user.emailVerified) {
+                        // UID'yi hemen hafızaya yazalım
+                        localStorage.setItem('user_uid', user.uid);
+                        localStorage.setItem('user_pass', pass); 
+        
+                        // Kullanıcı adını veritabanından çekip kaydedelim
+                        db.ref('profiles/' + user.uid).once('value', (snapshot) => {
+                            let nickname = snapshot.exists() ? snapshot.val().username : "Kullanıcı";
+                            localStorage.setItem('user_name', nickname);
+                            
+                            // Her şey tamam, şimdi yönlendir
+                            window.location.href = "panel.html";
+                        });
+                    } else {
+                        alert("Lütfen mail adresinizi doğrulayın!");
+                        auth.signOut();
+                    }
+                })
+                .catch((error) => alert("Giriş hatası: " + error.message));
         }
 
         function loginWithGoogle() {
