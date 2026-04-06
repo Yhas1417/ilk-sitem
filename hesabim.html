@@ -1,19 +1,18 @@
-  <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hesabım - Ayarlar</title>
+    <title>Hesabım - Profil Ayarları</title>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
     <style>
         :root { --primary: #1877f2; --bg: #f0f2f5; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
-        .container { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 380px; text-align: center; }
+        .container { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 400px; text-align: center; }
         .avatar { width: 80px; height: 80px; background: var(--primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: bold; margin: 0 auto 15px; }
-        input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 10px; margin: 10px 0; font-size: 16px; outline: none; }
-        button { width: 100%; padding: 14px; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; margin-top: 10px; }
+        input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 10px; margin: 10px 0; font-size: 16px; outline: none; box-sizing: border-box; }
+        button { width: 100%; padding: 14px; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; margin-top: 10px; font-size: 16px; transition: 0.2s; }
         .btn-blue { background: var(--primary); color: white; }
         .btn-back { background: #eee; color: #444; margin-top: 20px; }
     </style>
@@ -22,25 +21,27 @@
 
 <div class="container">
     <div class="avatar" id="user-avatar">?</div>
-    <h2 id="user-title">Yükleniyor...</h2>
+    <h2 id="user-title" style="margin: 5px 0 20px 0;">Yükleniyor...</h2>
     
-    <label style="text-align:left; display:block; font-size:13px; font-weight:bold; color:#666;">Kullanıcı Adı</label>
-    <input type="text" id="edit-username">
+    <div style="text-align:left;">
+        <label style="font-size:13px; font-weight:bold; color:#666;">Yeni Kullanıcı Adı</label>
+        <input type="text" id="edit-username">
+    </div>
 
-    <button class="btn-blue" onclick="updateProfile()">Güncelle</button>
-    <button class="btn-back" onclick="window.location.href='panel.html'">⬅️ Geri Dön</button>
+    <button class="btn-blue" onclick="updateProfile()">Değişiklikleri Kaydet</button>
+    <button class="btn-back" onclick="window.location.href='panel.html'">⬅️ Ana Sayfaya Dön</button>
 </div>
 
 <script>
     const firebaseConfig = {
-      apiKey: "AIzaSyArIYOp-msUGe_T4bLiVkoDhvXYhLuWVeo",
-      authDomain: "test-sitem.firebaseapp.com",
-      databaseURL: "https://test-sitem-default-rtdb.europe-west1.firebasedatabase.app",
-      projectId: "test-sitem",
-      storageBucket: "test-sitem.firebasestorage.app",
-      messagingSenderId: "97147105273",
-      appId: "1:97147105273:web:6e70cf559735f68fb8d728",
-      measurementId: "G-ETZLC279HD"
+        apiKey: "AIzaSyArIYOp-msUGe_T4bLiVkoDhvXYhLuWVeo",
+        authDomain: "test-sitem.firebaseapp.com",
+        databaseURL: "https://test-sitem-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "test-sitem",
+        storageBucket: "test-sitem.firebasestorage.app",
+        messagingSenderId: "97147105273",
+        appId: "1:97147105273:web:6e70cf559735f68fb8d728",
+        measurementId: "G-ETZLC279HD"
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
@@ -62,10 +63,12 @@
 
         if (newName && uid) {
             db.ref('profiles/' + uid).update({ username: newName }).then(() => {
-                localStorage.setItem('user_name', newName);
-                alert("Başarıyla güncellendi!");
+                localStorage.setItem('user_name', newName); // Hafızayı da güncelle
+                alert("Profil başarıyla güncellendi!");
                 location.reload();
             });
+        } else {
+            alert("Lütfen geçerli bir isim girin.");
         }
     }
 </script>
