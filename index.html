@@ -3,57 +3,105 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Giriş Yap</title>
+    <title>Giriş Yap - Sosyal Akış</title>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
+    
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
         .container { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 90%; max-width: 400px; text-align: center; }
-        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; font-size: 16px; }
-        .btn-blue { width: 100%; padding: 14px; border: none; border-radius: 10px; background: #1877f2; color: white; font-weight: bold; cursor: pointer; }
-        .link { display: block; margin-top: 15px; color: #1877f2; text-decoration: none; font-size: 14px; }
+        h2 { color: #1c1e21; margin-bottom: 10px; }
+        p { color: #606770; font-size: 14px; margin-bottom: 20px; }
+        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; font-size: 16px; outline: none; }
+        input:focus { border-color: #1877f2; }
+        .btn-blue { width: 100%; padding: 14px; border: none; border-radius: 10px; background: #1877f2; color: white; font-weight: bold; cursor: pointer; font-size: 16px; margin-top: 10px; }
+        .btn-blue:active { opacity: 0.8; }
+        .links { margin-top: 20px; border-top: 1px solid #eee; padding-top: 15px; }
+        .link { color: #1877f2; text-decoration: none; font-size: 14px; font-weight: 600; }
     </style>
 </head>
 <body>
+
     <div class="container">
         <h2>Giriş Yap</h2>
-        <input type="text" id="user-name" placeholder="Kullanıcı Adı">
-        <input type="password" id="user-pass" placeholder="Şifre">
+        <p>Devam etmek için e-posta ve şifrenizi girin.</p>
+        
+        <input type="email" id="user-email" placeholder="E-posta Adresiniz">
+        <input type="password" id="user-pass" placeholder="Şifreniz">
+        
         <button class="btn-blue" onclick="login()">Giriş Yap</button>
-        <a href="kayit.html" class="link">Hesabın yok mu? Kayıt Ol</a>
+        
+        <div class="links">
+            <a href="kayit.html" class="link">Yeni Hesap Oluştur (Kayıt Ol)</a>
+        </div>
     </div>
 
     <script>
+        // --- KENDİ FİREBASE BİLGİLERİNİ BURAYA YAPIŞTIR ---
         const firebaseConfig = {
-          apiKey: "AIzaSyArIYOp-msUGe_T4bLiVkoDhvXYhLuWVeo",
-          authDomain: "test-sitem.firebaseapp.com",
-          databaseURL: "https://test-sitem-default-rtdb.europe-west1.firebasedatabase.app",
-          projectId: "test-sitem",
-          storageBucket: "test-sitem.firebasestorage.app",
-          messagingSenderId: "97147105273",
-          appId: "1:97147105273:web:6e70cf559735f68fb8d728",
-          measurementId: "G-ETZLC279HD"
+            apiKey: "AIzaSyArIYOp-msUGe_T4bLiVkoDhvXYhLuWVeo",
+            authDomain: "test-sitem.firebaseapp.com",
+            databaseURL: "https://test-sitem-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "test-sitem",
+            storageBucket: "test-sitem.firebasestorage.app",
+            messagingSenderId: "97147105273",
+            appId: "1:97147105273:web:6e70cf559735f68fb8d728",
+            measurementId: "G-ETZLC279HD"
         };
+        
         firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
         const db = firebase.database();
 
-        // Otomatik Giriş Kontrolü
-        window.onload = () => {
-            if(localStorage.getItem('user_name')) window.location.href = "panel.html";
+        // Eğer kullanıcı zaten giriş yapmışsa ve hafızada ismi varsa direkt panele at
+        window.onload = function() {
+            if (localStorage.getItem('user_name')) {
+                window.location.href = "panel.html";
+            }
         };
 
         function login() {
-            const n = document.getElementById('user-name').value.trim();
-            const p = document.getElementById('user-pass').value.trim();
-            if(!n || !p) return alert("Boş bırakma!");
+            const email = document.getElementById('user-email').value.trim();
+            const pass = document.getElementById('user-pass').value.trim();
 
-            db.ref('users/' + n).once('value', s => {
-                if(s.exists() && s.val().password === p) {
-                    localStorage.setItem('user_name', n);
-                    localStorage.setItem('user_pass', p);
-                    window.location.href = "panel.html";
-                } else alert("Hatalı bilgiler!");
-            });
+            if(!email || !pass) {
+                alert("Lütfen e-posta ve şifrenizi girin!");
+                return;
+            }
+
+            // 1. Firebase Auth ile giriş yap
+            auth.signInWithEmailAndPassword(email, pass)
+                .then((userCredential) => {
+                    const user = userCredential.user;
+
+                    // 2. E-posta doğrulanmış mı kontrol et
+                    if(user.emailVerified) {
+                        // 3. Veritabanından (profiles) bu kişinin kullanıcı adını (nick) çek
+                        db.ref('profiles/' + user.uid).once('value', (snapshot) => {
+                            let nickname = "Kullanıcı";
+                            if(snapshot.exists()) {
+                                nickname = snapshot.val().username;
+                            }
+                            
+                            // 4. Bilgileri tarayıcıya kaydet (Panelde kullanmak için)
+                            localStorage.setItem('user_name', nickname);
+                            localStorage.setItem('user_pass', pass); 
+                            localStorage.setItem('user_uid', user.uid);
+                            
+                            // 5. Panele gönder
+                            window.location.href = "panel.html";
+                        });
+                    } else {
+                        // E-posta onaylanmamışsa
+                        alert("Giriş yapamazsınız! Lütfen e-postanıza gelen doğrulama linkine tıklayın.");
+                        auth.signOut(); // Oturumu kapat ki tekrar girmeye çalışsın
+                    }
+                })
+                .catch((error) => {
+                    // Hataları yakala (Yanlış şifre, olmayan kullanıcı vb.)
+                    alert("Giriş başarısız: " + error.message);
+                });
         }
     </script>
 </body>
