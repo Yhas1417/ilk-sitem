@@ -9,14 +9,15 @@
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
     
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
         .container { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 90%; max-width: 400px; text-align: center; }
-        h2 { color: #1c1e21; margin-bottom: 10px; }
-        p { color: #606770; font-size: 14px; margin-bottom: 20px; }
         input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; font-size: 16px; outline: none; }
-        input:focus { border-color: #1877f2; }
         .btn-blue { width: 100%; padding: 14px; border: none; border-radius: 10px; background: #1877f2; color: white; font-weight: bold; cursor: pointer; font-size: 16px; margin-top: 10px; }
-        .btn-blue:active { opacity: 0.8; }
+        
+        /* GOOGLE BUTONU */
+        .btn-google { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 10px; background: white; color: #5f6368; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 10px; transition: 0.2s; }
+        .btn-google:hover { background: #f8f9fa; }
+
         .links { margin-top: 20px; border-top: 1px solid #eee; padding-top: 15px; }
         .link { color: #1877f2; text-decoration: none; font-size: 14px; font-weight: 600; }
     </style>
@@ -25,20 +26,22 @@
 
     <div class="container">
         <h2>Giriş Yap</h2>
-        <p>Devam etmek için e-posta ve şifrenizi girin.</p>
-        
         <input type="email" id="user-email" placeholder="E-posta Adresiniz">
         <input type="password" id="user-pass" placeholder="Şifreniz">
-        
         <button class="btn-blue" onclick="login()">Giriş Yap</button>
         
+        <button class="btn-google" onclick="loginWithGoogle()">
+            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="18">
+            Google ile Devam Et
+        </button>
+        
         <div class="links">
-            <a href="kayit.html" class="link">Yeni Hesap Oluştur (Kayıt Ol)</a>
+            <a href="kayit.html" class="link">Yeni Hesap Oluştur</a>
         </div>
     </div>
 
     <script>
-        // --- KENDİ FİREBASE BİLGİLERİNİ BURAYA YAPIŞTIR ---
+        // --- FIREBASE AYARLARINI BURAYA YAPIŞTIR ---
         const firebaseConfig = {
             apiKey: "AIzaSyArIYOp-msUGe_T4bLiVkoDhvXYhLuWVeo",
             authDomain: "test-sitem.firebaseapp.com",
@@ -49,59 +52,32 @@
             appId: "1:97147105273:web:6e70cf559735f68fb8d728",
             measurementId: "G-ETZLC279HD"
         };
-        
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.database();
 
-        // Eğer kullanıcı zaten giriş yapmışsa ve hafızada ismi varsa direkt panele at
-        window.onload = function() {
-            if (localStorage.getItem('user_name')) {
-                window.location.href = "panel.html";
-            }
-        };
-
         function login() {
             const email = document.getElementById('user-email').value.trim();
             const pass = document.getElementById('user-pass').value.trim();
+            auth.signInWithEmailAndPassword(email, pass).then((res) => {
+                if(res.user.emailVerified) {
+                    db.ref('profiles/' + res.user.uid).once('value', s => {
+                        localStorage.setItem('user_name', s.exists() ? s.val().username : "Kullanıcı");
+                        localStorage.setItem('user_pass', pass);
+                        window.location.href = "panel.html";
+                    });
+                } else { alert("Lütfen mailinizi onaylayın!"); auth.signOut(); }
+            }).catch(e => alert(e.message));
+        }
 
-            if(!email || !pass) {
-                alert("Lütfen e-posta ve şifrenizi girin!");
-                return;
-            }
-
-            // 1. Firebase Auth ile giriş yap
-            auth.signInWithEmailAndPassword(email, pass)
-                .then((userCredential) => {
-                    const user = userCredential.user;
-
-                    // 2. E-posta doğrulanmış mı kontrol et
-                    if(user.emailVerified) {
-                        // 3. Veritabanından (profiles) bu kişinin kullanıcı adını (nick) çek
-                        db.ref('profiles/' + user.uid).once('value', (snapshot) => {
-                            let nickname = "Kullanıcı";
-                            if(snapshot.exists()) {
-                                nickname = snapshot.val().username;
-                            }
-                            
-                            // 4. Bilgileri tarayıcıya kaydet (Panelde kullanmak için)
-                            localStorage.setItem('user_name', nickname);
-                            localStorage.setItem('user_pass', pass); 
-                            localStorage.setItem('user_uid', user.uid);
-                            
-                            // 5. Panele gönder
-                            window.location.href = "panel.html";
-                        });
-                    } else {
-                        // E-posta onaylanmamışsa
-                        alert("Giriş yapamazsınız! Lütfen e-postanıza gelen doğrulama linkine tıklayın.");
-                        auth.signOut(); // Oturumu kapat ki tekrar girmeye çalışsın
-                    }
-                })
-                .catch((error) => {
-                    // Hataları yakala (Yanlış şifre, olmayan kullanıcı vb.)
-                    alert("Giriş başarısız: " + error.message);
-                });
+        function loginWithGoogle() {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            auth.signInWithPopup(provider).then((res) => {
+                const nick = res.user.displayName || res.user.email.split('@')[0];
+                localStorage.setItem('user_name', nick);
+                db.ref('profiles/' + res.user.uid).update({ username: nick });
+                window.location.href = "panel.html";
+            }).catch(e => alert(e.message));
         }
     </script>
 </body>
