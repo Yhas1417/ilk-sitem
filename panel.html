@@ -3,47 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hobi Sosyal Akış</title>
+    <title>Hobi Sosyal Akış - Panel</title>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-storage-compat.js"></script>
     <style>
         :root { --primary: #1877f2; --bg: #f0f2f5; --admin-bg: #fff9c4; --success: #42b72a; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; padding: 10px; display: flex; justify-content: center; }
-        .logout-btn { position: fixed; top: 10px; right: 10px; background: #ff4757; color: white; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; z-index: 1000; font-size: 13px; font-weight: bold; }
-        .container { background: white; padding: 20px; border-radius: 20px; width: 100%; max-width: 500px; margin-top: 50px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         
-        textarea { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd; margin: 10px 0; box-sizing: border-box; font-size: 16px; outline: none; resize: vertical; }
-        .file-label { display: block; background: #f0f7ff; padding: 15px; border: 2px dashed var(--primary); border-radius: 12px; cursor: pointer; font-weight: bold; color: var(--primary); margin: 10px 0; }
-        
-        /* HERKESE AÇIK KART TASARIMI */
-        .card { background: white; border-radius: 12px; padding: 15px; margin: 15px 0; border-left: 5px solid var(--primary); box-shadow: 0 2px 5px rgba(0,0,0,0.05); text-align: left; }
-        .card b { color: var(--primary); font-size: 1.1rem; }
-        .media-preview { width: 100%; border-radius: 8px; margin-top: 10px; max-height: 400px; object-fit: contain; background: #f9f9f9; }
-        
-        .reply-box { background: var(--admin-bg); border: 1px solid #fbc02d; padding: 10px; border-radius: 8px; margin-top: 10px; font-size: 14px; position: relative; }
-        .reply-box::before { content: "💬"; margin-right: 5px; }
-
-        .admin-input-group { margin-top: 10px; display: flex; gap: 5px; }
-        .admin-input-group input { flex: 1; padding: 8px; border-radius: 5px; border: 1px solid #ccc; }
-        .admin-input-group button { background: #65676b; color: white; border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer; font-size: 13px; }
-        
-        #progress-bar { width: 0%; height: 5px; background: var(--success); transition: 0.3s; }
-        #status-msg { margin-top: 10px; font-weight: bold; color: var(--success); display: none; }
-        
-        button#up-btn { width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; }
-
+        /* MENÜ VE SIDEBAR */
         .menu-btn { position: fixed; top: 15px; left: 15px; font-size: 24px; cursor: pointer; z-index: 1000; background: white; padding: 5px 12px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         .side-menu { position: fixed; top: 0; left: -280px; width: 280px; height: 100%; background: white; transition: 0.3s; z-index: 1001; box-shadow: 2px 0 10px rgba(0,0,0,0.1); padding: 20px; box-sizing: border-box; }
         .side-menu.open { left: 0; }
         .menu-close { text-align: right; font-size: 24px; cursor: pointer; color: #666; }
         .user-info { text-align: center; margin-top: 10px; }
-        .user-avatar { width: 60px; height: 60px; background: #1877f2; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; margin: 0 auto 10px; }
-        .menu-item { padding: 15px; border-radius: 10px; cursor: pointer; transition: 0.2s; font-weight: 500; text-align: left; }
+        .user-avatar { width: 60px; height: 60px; background: var(--primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; margin: 0 auto 10px; }
+        .menu-item { padding: 15px; border-radius: 10px; cursor: pointer; transition: 0.2s; font-weight: 500; text-align: left; margin-bottom: 5px; }
         .menu-item:hover { background: #f0f2f5; }
+
+        .container { background: white; padding: 20px; border-radius: 20px; width: 100%; max-width: 500px; margin-top: 60px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        textarea { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd; margin: 10px 0; box-sizing: border-box; font-size: 16px; outline: none; resize: vertical; }
+        .file-label { display: block; background: #f0f7ff; padding: 15px; border: 2px dashed var(--primary); border-radius: 12px; cursor: pointer; font-weight: bold; color: var(--primary); margin: 10px 0; }
+        .card { background: white; border-radius: 12px; padding: 15px; margin: 15px 0; border-left: 5px solid var(--primary); box-shadow: 0 2px 5px rgba(0,0,0,0.05); text-align: left; }
+        .media-preview { width: 100%; border-radius: 8px; margin-top: 10px; max-height: 400px; object-fit: contain; }
+        #progress-bar { width: 0%; height: 5px; background: var(--success); transition: 0.3s; }
+        #status-msg { margin-top: 10px; font-weight: bold; color: var(--success); display: none; }
+        button#up-btn { width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; }
+        .reply-box { background: var(--admin-bg); border: 1px solid #fbc02d; padding: 10px; border-radius: 8px; margin-top: 10px; font-size: 14px; }
     </style>
 </head>
 <body>
+
     <div class="menu-btn" onclick="toggleMenu()">☰</div>
 
     <div id="side-menu" class="side-menu">
@@ -51,28 +41,23 @@
         <div class="menu-content">
             <div class="user-info">
                 <div class="user-avatar" id="avatar-char">?</div>
-                <h4 id="menu-user-name" style="margin:0; color:#333;">Kullanıcı</h4>
+                <h4 id="menu-user-name">Kullanıcı</h4>
             </div>
             <hr style="border:0; border-top:1px solid #eee; margin:20px 0;">
             <div class="menu-item" onclick="window.location.href='hesabim.html'">👤 Hesap Ayarları</div>
-            <div class="menu-item logout-item" onclick="logout()" style="color:#ff4757; margin-top:20px;">🚪 Oturumu Kapat</div>
+            <div class="menu-item" onclick="logout()" style="color:#ff4757; margin-top:20px;">🚪 Oturumu Kapat</div>
         </div>
     </div>
 
     <div class="container">
-
-    <button class="logout-btn" onclick="logout()">Oturumu Kapat</button>
-
-    <div class="container">
         <h3>Merhaba, <span id="display-name" style="color:var(--primary)"></span></h3>
-        <p style="font-size: 13px; color: #666; margin-top: -10px;">Paylaşımların artık tüm topluluk tarafından görülebilir!</p>
         
         <div id="upload-area">
-            <textarea id="msg-text" placeholder="Toplulukla bir şeyler paylaş... (Maks. 1000 karakter)" maxlength="1000"></textarea>
-            <label class="file-label">📸 Fotoğraf / 🎥 Video Paylaş <input type="file" id="file-input" style="display:none" accept="image/*,video/*"></label>
-            <div id="prog-cont" style="background:#eee; height:5px; border-radius:5px; overflow:hidden; margin-bottom: 10px;"><div id="progress-bar"></div></div>
+            <textarea id="msg-text" placeholder="Toplulukla paylaş... (Maks. 1000)" maxlength="1000"></textarea>
+            <label class="file-label">📸 Fotoğraf / 🎥 Video Seç <input type="file" id="file-input" style="display:none" accept="image/*,video/*"></label>
+            <div style="background:#eee; height:5px; border-radius:5px; overflow:hidden; margin-bottom:10px;"><div id="progress-bar"></div></div>
             <div id="status-msg"></div>
-            <button onclick="checkAndUpload()" id="up-btn">Hemen Paylaş</button>
+            <button onclick="checkAndUpload()" id="up-btn">Paylaş</button>
         </div>
 
         <hr style="margin:25px 0; border:0; border-top:1px solid #eee;">
@@ -81,7 +66,7 @@
     </div>
 
     <script>
-        // --- FIREBASE CONFIG (Kendi ayarlarını buraya yapıştır) ---
+        // --- 1. FIREBASE CONFIG ---
         const firebaseConfig = {
             apiKey: "AIzaSyArIYOp-msUGe_T4bLiVkoDhvXYhLuWVeo",
             authDomain: "test-sitem.firebaseapp.com",
@@ -92,34 +77,40 @@
             appId: "1:97147105273:web:6e70cf559735f68fb8d728",
             measurementId: "G-ETZLC279HD"
         };
-        
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
         const storage = firebase.storage();
 
+        // --- 2. ADMİN BİLGİLERİ (BURAYI DOLDURUN) ---
         const GERCEK_ADMIN_ADI = "Yusuf Hüsrev"; 
         const GERCEK_ADMIN_SIFRE = "1417admin1417"; 
 
         const currentUser = localStorage.getItem('user_name');
         const currentPass = localStorage.getItem('user_pass');
 
-        if(!currentUser) { window.location.href = "index.html"; } 
-        else { document.getElementById('display-name').innerText = currentUser; }
+        if(!currentUser) { 
+            window.location.href = "index.html"; 
+        } else { 
+            document.getElementById('display-name').innerText = currentUser;
+            document.getElementById('menu-user-name').innerText = currentUser;
+            document.getElementById('avatar-char').innerText = currentUser.charAt(0).toUpperCase();
+        }
+
+        function toggleMenu() { document.getElementById('side-menu').classList.toggle('open'); }
 
         async function checkAndUpload() {
             const file = document.getElementById('file-input').files[0];
             const text = document.getElementById('msg-text').value.trim();
             const btn = document.getElementById('up-btn');
-            if(!file && !text) return alert("İçerik boş olamaz!");
+            if(!file && !text) return alert("Boş gönderemezsin!");
 
-            const bugun = new Date().toLocaleDateString('tr-TR');
-            const isAdmin = (currentUser === GERCEK_ADMIN_ADI && currentPass === GERCEK_ADMIN_SIFRE);
-            
-            if (!isAdmin) {
+            // GÜNLÜK 3 MESAJ SINIRI
+            if (currentUser !== GERCEK_ADMIN_ADI) {
+                const bugun = new Date().toLocaleDateString('tr-TR');
                 const snapshot = await db.ref('akıs').orderByChild('kimden').equalTo(currentUser).once('value');
-                let bugunkuMesajSayisi = 0;
-                snapshot.forEach(child => { if(child.val().tarih && child.val().tarih.includes(bugun)) bugunkuMesajSayisi++; });
-                if (bugunkuMesajSayisi >= 3) return alert("Günlük 3 paylaşım limitine ulaştınız!");
+                let sayac = 0;
+                snapshot.forEach(c => { if(c.val().tarih && c.val().tarih.includes(bugun)) sayac++; });
+                if(sayac >= 3) return alert("Günlük 3 paylaşım limitine ulaştınız!");
             }
 
             if (file && file.type.includes('video')) {
@@ -128,7 +119,7 @@
                 video.preload = 'metadata';
                 video.onloadedmetadata = function() {
                     window.URL.revokeObjectURL(video.src);
-                    if (video.duration > 60) { alert("Video 1 dakikadan uzun olamaz!"); btn.disabled = false; btn.innerText = "Paylaş"; } 
+                    if (video.duration > 60) { alert("Video 1 dk'dan uzun olamaz!"); btn.disabled = false; btn.innerText = "Paylaş"; } 
                     else { proceedUpload(file, text); }
                 };
                 video.src = URL.createObjectURL(file);
@@ -163,7 +154,7 @@
             });
         }
 
-        // --- HERKESE AÇIK LİSTELEME ---
+        // AKIŞ VE ADMİN KONTROLÜ
         db.ref('akıs').on('value', s => {
             const list = document.getElementById('media-list');
             list.innerHTML = "";
@@ -171,16 +162,18 @@
 
             s.forEach(c => {
                 const d = c.val();
-                
-                // ESKİ KISITLAMAYI KALDIRDIK: Artık herkes d.kimden fark etmeksizin görebilir.
-                
                 let mediaHtml = d.url ? (d.tip.includes('image') ? `<img src="${d.url}" class="media-preview">` : `<video src="${d.url}" controls class="media-preview"></video>`) : "";
-                let yanitHtml = d.yanit ? `<div class="reply-box"><b>👑 Yönetici Yanıtı:</b><br>${d.yanit}</div>` : "";
-                let adminOps = isAdmin ? `<div class="admin-input-group"><input type="text" id="reply-in-${c.key}" placeholder="Yanıtla..."><button onclick="sendReply('${c.key}')">Gönder</button></div>` : "";
+                let yanitHtml = d.yanit ? `<div class="reply-box"><b>👑 Admin Yanıtı:</b><br>${d.yanit}</div>` : "";
+                
+                let adminOps = isAdmin ? `
+                    <div style="margin-top:10px; display:flex; gap:5px;">
+                        <input type="text" id="rep-${c.key}" placeholder="Yanıtla..." style="flex:1; padding:8px; border-radius:8px; border:1px solid #ddd;">
+                        <button onclick="sendReply('${c.key}')" style="background:#333; color:white; border:none; padding:8px 12px; border-radius:8px; cursor:pointer;">Gönder</button>
+                    </div>` : "";
 
                 list.innerHTML = `
                     <div class="card">
-                        <b>👤 ${d.kimden}</b> <small style="float:right; color:#888;">${d.tarih}</small>
+                        <b>👤 ${d.kimden}</b> <small style="float:right; color:#888;">${d.tarih || ""}</small>
                         <p style="margin:10px 0;">${d.mesaj}</p>
                         ${mediaHtml}${yanitHtml}${adminOps}
                     </div>
@@ -189,27 +182,13 @@
         });
 
         function sendReply(id) {
-            const val = document.getElementById('reply-in-' + id).value;
-            if(val) db.ref('akıs/' + id).update({ yanit: val }).then(() => alert("Yanıtlandı!"));
+            const text = document.getElementById('rep-' + id).value;
+            if(text) {
+                db.ref('akıs/' + id).update({ yanit: text }).then(() => alert("Yanıtlandı!"));
+            }
         }
 
         function logout() { localStorage.clear(); window.location.href = "index.html"; }
-
-        function toggleMenu() {
-            const menu = document.getElementById('side-menu');
-            menu.classList.toggle('open');
-            
-            // Menü açıldığında bilgileri tazele
-            const currentName = localStorage.getItem('user_name') || "Kullanıcı";
-            document.getElementById('menu-user-name').innerText = currentName;
-            document.getElementById('avatar-char').innerText = currentName.charAt(0).toUpperCase();
-        }
-    
-        // Eski logout butonunun görevini bu fonksiyon devralacak
-        function logout() {
-            localStorage.clear();
-            window.location.href = "index.html";
-        }
     </script>
 </body>
 </html>
