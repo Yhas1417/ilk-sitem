@@ -45,30 +45,48 @@
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
+    const auth = firebase.auth(); // Auth sistemini ekledik
 
-    window.onload = function() {
-        const name = localStorage.getItem('user_name');
-        const uid = localStorage.getItem('user_uid');
-
-        if (!uid) { window.location.href = "index.html"; return; }
-
-        document.getElementById('edit-username').value = name;
-        document.getElementById('user-avatar').innerText = name.charAt(0).toUpperCase();
-        document.getElementById('user-title').innerText = name;
-    };
+    // SAYFA YÜKLENDİĞİNDE ÇALIŞAN ANA FONKSİYON
+    auth.onAuthStateChanged((user) => {
+        if (user) {
+            // Kullanıcı giriş yapmışsa bilgileri çek
+            const uid = user.uid;
+            
+            db.ref('profiles/' + uid).once('value', (snapshot) => {
+                let name = "Kullanıcı";
+                if(snapshot.exists()) {
+                    name = snapshot.val().username;
+                }
+                
+                // Ekranı güncelle
+                document.getElementById('edit-username').value = name;
+                document.getElementById('user-avatar').innerText = name.charAt(0).toUpperCase();
+                document.getElementById('user-title').innerText = name;
+                
+                // Hafızayı da sağlama alalım
+                localStorage.setItem('user_name', name);
+                localStorage.setItem('user_uid', uid);
+            });
+        } else {
+            // Kullanıcı giriş yapmamışsa index'e gönder
+            console.log("Giriş bulunamadı, yönlendiriliyor...");
+            window.location.href = "index.html";
+        }
+    });
 
     function updateProfile() {
         const newName = document.getElementById('edit-username').value.trim();
-        const uid = localStorage.getItem('user_uid');
+        const user = auth.currentUser;
 
-        if (newName && uid) {
-            db.ref('profiles/' + uid).update({ username: newName }).then(() => {
-                localStorage.setItem('user_name', newName); // Hafızayı da güncelle
+        if (newName && user) {
+            db.ref('profiles/' + user.uid).update({ 
+                username: newName 
+            }).then(() => {
+                localStorage.setItem('user_name', newName);
                 alert("Profil başarıyla güncellendi!");
                 location.reload();
-            });
-        } else {
-            alert("Lütfen geçerli bir isim girin.");
+            }).catch(e => alert("Hata: " + e.message));
         }
     }
 </script>
