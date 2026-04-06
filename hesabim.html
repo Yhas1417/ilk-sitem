@@ -1,0 +1,115 @@
+  <!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hesabım - Profil Ayarları</title>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
+    <style>
+        :root { --primary: #1877f2; --bg: #f0f2f5; --red: #ff4757; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; padding: 20px; display: flex; justify-content: center; }
+        .container { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 400px; text-align: center; }
+        
+        .profile-header { margin-bottom: 30px; }
+        .avatar { width: 80px; height: 80px; background: var(--primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: bold; margin: 0 auto 15px; }
+        
+        .info-group { text-align: left; margin-bottom: 20px; }
+        label { display: block; font-size: 14px; color: #65676b; margin-bottom: 5px; font-weight: 600; }
+        input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; font-size: 16px; outline: none; background: #f9f9f9; }
+        input:focus { border-color: var(--primary); background: white; }
+
+        button { width: 100%; padding: 14px; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; font-size: 16px; margin-top: 10px; transition: 0.2s; }
+        .btn-blue { background: var(--primary); color: white; }
+        .btn-outline { background: transparent; border: 1px solid #ddd; color: #444; margin-top: 20px; }
+        .btn-red { background: var(--red); color: white; margin-top: 40px; }
+        
+        button:active { opacity: 0.8; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="profile-header">
+        <div class="avatar" id="user-avatar">?</div>
+        <h2 id="user-title">Hesabım</h2>
+        <p id="user-email-text" style="color: #65676b; font-size: 14px;"></p>
+    </div>
+
+    <div class="info-group">
+        <label>Görünen Adınız</label>
+        <input type="text" id="edit-username" placeholder="Adınızı girin...">
+    </div>
+
+    <button class="btn-blue" onclick="updateProfile()">Değişiklikleri Kaydet</button>
+    
+    <button class="btn-outline" onclick="window.location.href='panel.html'">⬅️ Ana Sayfaya Dön</button>
+
+    <button class="btn-red" onclick="fullLogout()">Oturumu Kapat</button>
+</div>
+
+<script>
+    // --- FIREBASE AYARLARI (panel.html ile AYNI olmalı) ---
+    const firebaseConfig = {
+        apiKey: "AIzaSyArIYOp-msUGe_T4bLiVkoDhvXYhLuWVeo",
+        authDomain: "test-sitem.firebaseapp.com",
+        databaseURL: "https://test-sitem-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "test-sitem",
+        storageBucket: "test-sitem.firebasestorage.app",
+        messagingSenderId: "97147105273",
+        appId: "1:97147105273:web:6e70cf559735f68fb8d728",
+        measurementId: "G-ETZLC279HD"
+    };
+    
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    const auth = firebase.auth();
+
+    // Sayfa Yüklendiğinde Bilgileri Doldur
+    window.onload = function() {
+        const name = localStorage.getItem('user_name');
+        const uid = localStorage.getItem('user_uid');
+
+        if (!uid) {
+            window.location.href = "index.html";
+            return;
+        }
+
+        document.getElementById('edit-username').value = name;
+        document.getElementById('user-avatar').innerText = name.charAt(0).toUpperCase();
+        document.getElementById('user-title').innerText = name;
+
+        // E-posta bilgisini Firebase'den çekelim
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                document.getElementById('user-email-text').innerText = user.email;
+            }
+        });
+    };
+
+    function updateProfile() {
+        const newName = document.getElementById('edit-username').value.trim();
+        const uid = localStorage.getItem('user_uid');
+
+        if (newName && uid) {
+            db.ref('profiles/' + uid).update({
+                username: newName
+            }).then(() => {
+                localStorage.setItem('user_name', newName);
+                alert("Profiliniz güncellendi!");
+                location.reload(); // Sayfayı yenileyerek yeni ismi göster
+            }).catch(e => alert("Hata: " + e.message));
+        }
+    }
+
+    function fullLogout() {
+        auth.signOut().then(() => {
+            localStorage.clear();
+            window.location.href = "index.html";
+        });
+    }
+</script>
+
+</body>
+</html>
