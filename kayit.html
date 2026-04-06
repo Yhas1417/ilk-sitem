@@ -3,16 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kayıt Ol - Sosyal Profil</title>
+    <title>Kayıt Ol - Sosyal Akış</title>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
         .container { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 90%; max-width: 400px; text-align: center; }
-        input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; font-size: 16px; }
+        input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; font-size: 16px; outline: none; }
         .btn-green { width: 100%; padding: 14px; border: none; border-radius: 10px; background: #42b72a; color: white; font-weight: bold; cursor: pointer; margin-top: 10px; }
-        .info-text { font-size: 12px; color: #777; margin: 10px 0; }
+        .btn-google { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 10px; background: white; color: #5f6368; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 10px; }
+        .info { font-size: 12px; color: #777; margin: 10px 0; }
         .link { display: block; margin-top: 15px; color: #1877f2; text-decoration: none; font-size: 14px; }
     </style>
 </head>
@@ -22,14 +23,20 @@
         <input type="text" id="reg-nick" placeholder="Görünecek Kullanıcı Adı">
         <input type="email" id="reg-email" placeholder="E-posta Adresi">
         <input type="password" id="reg-pass" placeholder="Şifre (Min. 6 Karakter)">
-        
-        <p class="info-text">Telefon veya mailiniz hesap doğrulama için kullanılacaktır.</p>
+        <p class="info">Telefon veya mailiniz hesap doğrulama için kullanılacaktır.</p>
         
         <button class="btn-green" onclick="register()">Kayıt Ol ve Doğrula</button>
+        
+        <button class="btn-google" onclick="loginWithGoogle()">
+            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="18">
+            Google ile Hızlı Kayıt
+        </button>
+
         <a href="index.html" class="link">Zaten hesabın var mı? Giriş Yap</a>
     </div>
 
     <script>
+        // --- FIREBASE AYARLARINI BURAYA YAPIŞTIR ---
         const firebaseConfig = {
             apiKey: "AIzaSyArIYOp-msUGe_T4bLiVkoDhvXYhLuWVeo",
             authDomain: "test-sitem.firebaseapp.com",
@@ -48,23 +55,25 @@
             const nick = document.getElementById('reg-nick').value.trim();
             const email = document.getElementById('reg-email').value.trim();
             const pass = document.getElementById('reg-pass').value.trim();
+            if(!nick || !email || !pass) return alert("Boş bırakma!");
 
-            if(!nick || !email || !pass) return alert("Tüm alanları doldurun!");
+            auth.createUserWithEmailAndPassword(email, pass).then((res) => {
+                db.ref('profiles/' + res.user.uid).set({ username: nick });
+                res.user.sendEmailVerification().then(() => {
+                    alert("Onay maili gönderildi! Lütfen kontrol edin.");
+                    window.location.href = "index.html";
+                });
+            }).catch(e => alert(e.message));
+        }
 
-            auth.createUserWithEmailAndPassword(email, pass)
-                .then((userCredential) => {
-                    const user = userCredential.user;
-                    
-                    // 1. Kullanıcı adını veritabanına kaydet (UID ile eşleştirerek)
-                    db.ref('profiles/' + user.uid).set({ username: nick });
-
-                    // 2. Doğrulama maili gönder
-                    user.sendEmailVerification().then(() => {
-                        alert("Kayıt başarılı! Lütfen mailinize gelen onay linkine tıklayın.");
-                        window.location.href = "index.html";
-                    });
-                })
-                .catch((e) => alert("Hata: " + e.message));
+        function loginWithGoogle() {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            auth.signInWithPopup(provider).then((res) => {
+                const nick = res.user.displayName || res.user.email.split('@')[0];
+                localStorage.setItem('user_name', nick);
+                db.ref('profiles/' + res.user.uid).update({ username: nick });
+                window.location.href = "panel.html";
+            }).catch(e => alert(e.message));
         }
     </script>
 </body>
