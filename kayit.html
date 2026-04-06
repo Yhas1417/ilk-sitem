@@ -3,50 +3,68 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kayıt Ol</title>
+    <title>Kayıt Ol - Sosyal Profil</title>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .container { background: white; padding: 30px; border-radius: 20px; width: 90%; max-width: 400px; text-align: center; }
-        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; }
-        .btn-green { width: 100%; padding: 14px; border: none; border-radius: 10px; background: #42b72a; color: white; font-weight: bold; cursor: pointer; }
-        .link { display: block; margin-top: 15px; color: #666; text-decoration: none; font-size: 14px; }
+        .container { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 90%; max-width: 400px; text-align: center; }
+        input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; font-size: 16px; }
+        .btn-green { width: 100%; padding: 14px; border: none; border-radius: 10px; background: #42b72a; color: white; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        .info-text { font-size: 12px; color: #777; margin: 10px 0; }
+        .link { display: block; margin-top: 15px; color: #1877f2; text-decoration: none; font-size: 14px; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h2>Yeni Hesap Oluştur</h2>
-        <input type="text" id="reg-name" placeholder="Kullanıcı Adı">
-        <input type="password" id="reg-pass" placeholder="Şifre">
-        <button class="btn-green" onclick="register()">Kayıt Ol</button>
+        <h2>Hesap Oluştur</h2>
+        <input type="text" id="reg-nick" placeholder="Görünecek Kullanıcı Adı">
+        <input type="email" id="reg-email" placeholder="E-posta Adresi">
+        <input type="password" id="reg-pass" placeholder="Şifre (Min. 6 Karakter)">
+        
+        <p class="info-text">Telefon veya mailiniz hesap doğrulama için kullanılacaktır.</p>
+        
+        <button class="btn-green" onclick="register()">Kayıt Ol ve Doğrula</button>
         <a href="index.html" class="link">Zaten hesabın var mı? Giriş Yap</a>
     </div>
 
     <script>
-        // Aynı Config Buraya
         const firebaseConfig = {
-          apiKey: "AIzaSyArIYOp-msUGe_T4bLiVkoDhvXYhLuWVeo",
-          authDomain: "test-sitem.firebaseapp.com",
-          databaseURL: "https://test-sitem-default-rtdb.europe-west1.firebasedatabase.app",
-          projectId: "test-sitem",
-          storageBucket: "test-sitem.firebasestorage.app",
-          messagingSenderId: "97147105273",
-          appId: "1:97147105273:web:6e70cf559735f68fb8d728",
-          measurementId: "G-ETZLC279HD"
+            apiKey: "AIzaSyArIYOp-msUGe_T4bLiVkoDhvXYhLuWVeo",
+            authDomain: "test-sitem.firebaseapp.com",
+            databaseURL: "https://test-sitem-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "test-sitem",
+            storageBucket: "test-sitem.firebasestorage.app",
+            messagingSenderId: "97147105273",
+            appId: "1:97147105273:web:6e70cf559735f68fb8d728",
+            measurementId: "G-ETZLC279HD"
         };
         firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
         const db = firebase.database();
 
         function register() {
-            const n = document.getElementById('reg-name').value.trim();
-            const p = document.getElementById('reg-pass').value.trim();
-            if(!n || !p) return alert("Eksik bilgi!");
+            const nick = document.getElementById('reg-nick').value.trim();
+            const email = document.getElementById('reg-email').value.trim();
+            const pass = document.getElementById('reg-pass').value.trim();
 
-            db.ref('users/' + n).set({password: p}).then(() => {
-                alert("Kayıt başarılı! Şimdi giriş yapabilirsin.");
-                window.location.href = "index.html";
-            });
+            if(!nick || !email || !pass) return alert("Tüm alanları doldurun!");
+
+            auth.createUserWithEmailAndPassword(email, pass)
+                .then((userCredential) => {
+                    const user = userCredential.user;
+                    
+                    // 1. Kullanıcı adını veritabanına kaydet (UID ile eşleştirerek)
+                    db.ref('profiles/' + user.uid).set({ username: nick });
+
+                    // 2. Doğrulama maili gönder
+                    user.sendEmailVerification().then(() => {
+                        alert("Kayıt başarılı! Lütfen mailinize gelen onay linkine tıklayın.");
+                        window.location.href = "index.html";
+                    });
+                })
+                .catch((e) => alert("Hata: " + e.message));
         }
     </script>
 </body>
