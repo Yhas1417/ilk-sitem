@@ -46,10 +46,29 @@
     const btn = document.getElementById('btn');
 
     // Fotoğrafı yazıya (Base64) çeviren fonksiyon
-    const toBase64 = file => new Promise((resolve, reject) => {
+    // Eski toBase64 yerine bu gelişmiş fonksiyonu kullan:
+    const processImage = (file) => new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.readAsDataURL(file);
-        reader.onload = () => resolve(reader.result);
+        reader.onload = (event) => {
+            const img = new Image();
+            img.src = event.target.result;
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const MAX_WIDTH = 800; // Fotoğrafı maksimum 800px genişliğe çeker
+                const scaleSize = MAX_WIDTH / img.width;
+            
+                canvas.width = MAX_WIDTH;
+                canvas.height = img.height * scaleSize;
+
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+                // 0.7 kalitesi ile fotoğrafı JPEG'e çevir (Boyutu inanılmaz düşürür)
+                const dataUrl = canvas.toDataURL('image/jpeg', 0.7); 
+                resolve(dataUrl);
+            };
+        };
         reader.onerror = error => reject(error);
     });
 
