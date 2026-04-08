@@ -9,7 +9,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-storage-compat.js"></script>
     <style>
-        :root { --primary: #1877f2; --bg: #f0f2f5; --admin-bg: #fff9c4; --success: #42b72a; }
+        :root { --primary: #1877f2; --bg: #f0f2f5; --admin-bg: #fff9c4; --success: #42b72a; --pinned: #fff4e5; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; padding: 10px; display: flex; justify-content: center; }
         
         /* MENÜ VE SIDEBAR */
@@ -17,20 +17,28 @@
         .side-menu { position: fixed; top: 0; left: -280px; width: 280px; height: 100%; background: white; transition: 0.3s; z-index: 1001; box-shadow: 2px 0 10px rgba(0,0,0,0.1); padding: 20px; box-sizing: border-box; }
         .side-menu.open { left: 0; }
         .menu-close { text-align: right; font-size: 24px; cursor: pointer; color: #666; }
-        .user-info { text-align: center; margin-top: 10px; }
-        .user-avatar { width: 60px; height: 60px; background: var(--primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; margin: 0 auto 10px; }
-        .menu-item { padding: 15px; border-radius: 10px; cursor: pointer; transition: 0.2s; font-weight: 500; text-align: left; margin-bottom: 5px; }
-        .menu-item:hover { background: #f0f2f5; }
-
+        
         .container { background: white; padding: 20px; border-radius: 20px; width: 100%; max-width: 500px; margin-top: 60px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         textarea { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd; margin: 10px 0; box-sizing: border-box; font-size: 16px; outline: none; resize: vertical; }
         .file-label { display: block; background: #f0f7ff; padding: 15px; border: 2px dashed var(--primary); border-radius: 12px; cursor: pointer; font-weight: bold; color: var(--primary); margin: 10px 0; }
-        .card { background: white; border-radius: 12px; padding: 15px; margin: 15px 0; border-left: 5px solid var(--primary); box-shadow: 0 2px 5px rgba(0,0,0,0.05); text-align: left; }
+        
+        /* KART TASARIMI */
+        .card { background: white; border-radius: 12px; padding: 15px; margin: 15px 0; border-left: 5px solid var(--primary); box-shadow: 0 2px 5px rgba(0,0,0,0.05); text-align: left; position: relative; }
+        .card.pinned { background: var(--pinned); border-left-color: #ff9800; }
+        .pin-icon { position: absolute; top: 10px; right: 10px; font-size: 18px; color: #ff9800; }
+        
         .media-preview { width: 100%; border-radius: 8px; margin-top: 10px; max-height: 400px; object-fit: contain; }
-        #progress-bar { width: 0%; height: 5px; background: var(--success); transition: 0.3s; }
-        #status-msg { margin-top: 10px; font-weight: bold; color: var(--success); display: none; }
-        button#up-btn { width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; }
-        .reply-box { background: var(--admin-bg); border: 1px solid #fbc02d; padding: 10px; border-radius: 8px; margin-top: 10px; font-size: 14px; }
+        
+        /* YORUM BÖLÜMÜ */
+        .comment-section { margin-top: 15px; border-top: 1px solid #eee; padding-top: 10px; }
+        .comment { background: #f8f9fa; padding: 8px 12px; border-radius: 10px; margin-bottom: 5px; font-size: 14px; }
+        .comment b { color: var(--primary); }
+        .comment-input-area { display: flex; gap: 5px; margin-top: 10px; }
+        .comment-input { flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 8px; outline: none; font-size: 14px; }
+        .btn-send-comment { background: var(--primary); color: white; border: none; padding: 5px 12px; border-radius: 8px; cursor: pointer; }
+        
+        .admin-badge { background: #333; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; vertical-align: middle; }
+        .btn-pin { background: none; border: 1px solid #ff9800; color: #ff9800; padding: 2px 8px; border-radius: 5px; font-size: 12px; cursor: pointer; float: right; }
     </style>
 </head>
 <body>
@@ -40,34 +48,29 @@
     <div id="side-menu" class="side-menu">
         <div class="menu-close" onclick="toggleMenu()">✕</div>
         <div class="menu-content">
-            <div class="user-info">
-                <div class="user-avatar" id="avatar-char">?</div>
+            <div class="user-info" style="text-align:center;">
+                <div id="avatar-char" style="width:60px; height:60px; background:var(--primary); color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:24px; margin:0 auto 10px;">?</div>
                 <h4 id="menu-user-name">Kullanıcı</h4>
             </div>
-            <hr style="border:0; border-top:1px solid #eee; margin:20px 0;">
+            <hr>
             <div class="menu-item" onclick="window.location.href='hesabim.html'">👤 Hesap Ayarları</div>
-            <div class="menu-item" onclick="logout()" style="color:#ff4757; margin-top:20px;">🚪 Oturumu Kapat</div>
+            <div class="menu-item" onclick="logout()" style="color:#ff4757;">🚪 Oturumu Kapat</div>
         </div>
     </div>
 
     <div class="container">
         <h3>Merhaba, <span id="display-name" style="color:var(--primary)"></span></h3>
-        
         <div id="upload-area">
-            <textarea id="msg-text" placeholder="Toplulukla paylaş... (Maks. 1000)" maxlength="1000"></textarea>
-            <label class="file-label">📸 Fotoğraf / 🎥 Video Seç <input type="file" id="file-input" style="display:none" accept="image/*,video/*"></label>
-            <div style="background:#eee; height:5px; border-radius:5px; overflow:hidden; margin-bottom:10px;"><div id="progress-bar"></div></div>
-            <div id="status-msg"></div>
-            <button onclick="checkAndUpload()" id="up-btn">Paylaş</button>
+            <textarea id="msg-text" placeholder="Toplulukla paylaş..." maxlength="1000"></textarea>
+            <label class="file-label">📸 Foto/Video Seç <input type="file" id="file-input" style="display:none" accept="image/*,video/*"></label>
+            <button onclick="checkAndUpload()" id="up-btn" style="width:100%; padding:14px; background:var(--primary); color:white; border:none; border-radius:10px; font-weight:bold; cursor:pointer;">Paylaş</button>
         </div>
-
-        <hr style="margin:25px 0; border:0; border-top:1px solid #eee;">
-        <h4 style="text-align:left;">🌍 Genel Akış</h4>
+        <hr style="margin:20px 0; border:0; border-top:1px solid #eee;">
         <div id="media-list"></div>
     </div>
 
     <script>
-        // --- 1. FIREBASE CONFIG ---
+        // FIREBASE CONFIG
         const firebaseConfig = {
             apiKey: "AIzaSyArIYOp-msUGe_T4bLiVkoDhvXYhLuWVeo",
             authDomain: "test-sitem.firebaseapp.com",
@@ -83,134 +86,112 @@
         const storage = firebase.storage();
         const auth = firebase.auth();
 
-        // --- 2. GÜNCEL ADMİN KONTROLÜ ---
-        const ADMIN_MAIL = "yusufkeskin1417@gmail.com"; // BURAYA KENDİ GMAİL ADRESİNİ YAZ
-        const ADMIN_ADI = "Yusuf Keskin";
-        const ADMIN_SIFRE = "Yusuf148148";
+        // ADMİN AYARI
+        const ADMIN_MAIL = "yusufkeskin1417@gmail.com"; 
 
         let currentAdminState = false;
+        let myName = localStorage.getItem('user_name') || "Misafir";
 
-        // Oturum durumunu ve adminliği kontrol et
         auth.onAuthStateChanged((user) => {
             if (user) {
-                const currentUser = localStorage.getItem('user_name') || "Kullanıcı";
-                const currentPass = localStorage.getItem('user_pass');
-                
-                // Adminlik şartı: Ya mail adresi eşleşmeli ya da manuel şifre doğru olmalı
-                currentAdminState = (user.email === ADMIN_MAIL) || (currentUser === ADMIN_ADI && currentPass === ADMIN_SIFRE);
-                
-                document.getElementById('display-name').innerText = currentUser;
-                document.getElementById('menu-user-name').innerText = currentUser;
-                document.getElementById('avatar-char').innerText = currentUser.charAt(0).toUpperCase();
-                
-                // Akışı admin yetkisine göre yükle
+                currentAdminState = (user.email === ADMIN_MAIL);
+                document.getElementById('display-name').innerText = myName;
+                document.getElementById('menu-user-name').innerText = myName;
+                document.getElementById('avatar-char').innerText = myName.charAt(0).toUpperCase();
                 verileriYukle(currentAdminState);
             } else {
                 window.location.href = "index.html";
             }
         });
 
-        function toggleMenu() { document.getElementById('side-menu').classList.toggle('open'); }
-
-        async function checkAndUpload() {
-            const file = document.getElementById('file-input').files[0];
-            const text = document.getElementById('msg-text').value.trim();
-            const btn = document.getElementById('up-btn');
-            if(!file && !text) return alert("İçerik boş olamaz!");
-
-            // Admin değilse günlük limit kontrolü
-            if (!currentAdminState) {
-                const bugun = new Date().toLocaleDateString('tr-TR');
-                const name = localStorage.getItem('user_name');
-                const snapshot = await db.ref('akıs').orderByChild('kimden').equalTo(name).once('value');
-                let sayac = 0;
-                snapshot.forEach(c => { if(c.val().tarih && c.val().tarih.includes(bugun)) sayac++; });
-                if(sayac >= 3) return alert("Günlük 3 paylaşım limitine ulaştınız!");
-            }
-
-            if (file && file.type.includes('video')) {
-                btn.disabled = true; btn.innerText = "Süre kontrol ediliyor...";
-                const video = document.createElement('video');
-                video.preload = 'metadata';
-                video.onloadedmetadata = function() {
-                    window.URL.revokeObjectURL(video.src);
-                    if (video.duration > 60) { alert("Video 1 dakikadan uzun olamaz!"); btn.disabled = false; btn.innerText = "Paylaş"; } 
-                    else { proceedUpload(file, text); }
-                };
-                video.src = URL.createObjectURL(file);
-            } else { proceedUpload(file, text); }
-        }
-
-        async function proceedUpload(file, text) {
-            const btn = document.getElementById('up-btn');
-            const name = localStorage.getItem('user_name');
-            btn.disabled = true; btn.innerText = "Yükleniyor...";
-            
-            if(file) {
-                const ref = storage.ref('akıs/' + Date.now());
-                const task = ref.put(file);
-                task.on('state_changed', (s) => { document.getElementById('progress-bar').style.width = (s.bytesTransferred / s.totalBytes) * 100 + "%"; }, null, async () => {
-                    const url = await task.snapshot.ref.getDownloadURL();
-                    saveData(name, text, url, file.type);
-                });
-            } else { saveData(name, text, "", ""); }
-        }
-
-        function saveData(name, text, url, type) {
-            db.ref('akıs').push({
-                kimden: name,
-                mesaj: text,
-                url: url,
-                tip: type,
-                tarih: new Date().toLocaleString('tr-TR'),
-                yanit: ""
-            }).then(() => {
-                document.getElementById('status-msg').style.display = "block";
-                document.getElementById('status-msg').innerText = "✅ Başarıyla Paylaşıldı!";
-                setTimeout(() => location.reload(), 1500);
-            });
-        }
-
         function verileriYukle(isAdmin) {
             db.ref('akıs').on('value', s => {
                 const list = document.getElementById('media-list');
                 list.innerHTML = "";
+                let posts = [];
 
                 s.forEach(c => {
-                    const d = c.val();
-                    let mediaHtml = d.url ? (d.tip.includes('image') ? `<img src="${d.url}" class="media-preview">` : `<video src="${d.url}" controls class="media-preview"></video>`) : "";
-                    let yanitHtml = d.yanit ? `<div class="reply-box"><b>👑 Admin Yanıtı:</b><br>${d.yanit}</div>` : "";
-                    
-                    let adminOps = isAdmin ? `
-                        <div style="margin-top:10px; display:flex; gap:5px;">
-                            <input type="text" id="rep-${c.key}" placeholder="Yanıtla..." style="flex:1; padding:8px; border-radius:8px; border:1px solid #ddd;">
-                            <button onclick="sendReply('${c.key}')" style="background:#333; color:white; border:none; padding:8px 12px; border-radius:8px; cursor:pointer;">Gönder</button>
-                        </div>` : "";
+                    let post = c.val();
+                    post.key = c.key;
+                    posts.push(post);
+                });
 
-                    list.innerHTML = `
-                        <div class="card">
-                            <b>👤 ${d.kimden}</b> <small style="float:right; color:#888;">${d.tarih || ""}</small>
-                            <p style="margin:10px 0;">${d.mesaj}</p>
-                            ${mediaHtml}${yanitHtml}${adminOps}
-                        </div>
-                    ` + list.innerHTML;
+                // SIRALAMA: Sabitlenenler en üste, sonra tarih
+                posts.sort((a, b) => (b.pinned || 0) - (a.pinned || 0));
+
+                posts.forEach(d => {
+                    let mediaHtml = d.url ? (d.tip.includes('image') ? `<img src="${d.url}" class="media-preview">` : `<video src="${d.url}" controls class="media-preview"></video>`) : "";
+                    let pinBtn = isAdmin ? `<button class="btn-pin" onclick="togglePin('${d.key}', ${d.pinned})">${d.pinned ? '📌 Sabit Kaldır' : '📌 Sabitle'}</button>` : "";
+                    let pinMark = d.pinned ? `<span class="pin-icon">📌</span>` : "";
+
+                    // Yorumları Listele
+                    let commentsHtml = "";
+                    if (d.comments) {
+                        Object.values(d.comments).forEach(c => {
+                            commentsHtml += `<div class="comment"><b>${c.user}:</b> ${c.text}</div>`;
+                        });
+                    }
+
+                    list.innerHTML += `
+                        <div class="card ${d.pinned ? 'pinned' : ''}">
+                            ${pinMark}
+                            <b>👤 ${d.kimden}</b> ${pinBtn}
+                            <p>${d.mesaj}</p>
+                            ${mediaHtml}
+                            <div class="comment-section">
+                                <div id="comments-${d.key}">${commentsHtml}</div>
+                                <div class="comment-input-area">
+                                    <input type="text" id="input-${d.key}" class="comment-input" placeholder="Yorum yaz...">
+                                    <button class="btn-send-comment" onclick="addComment('${d.key}')">Gönder</button>
+                                </div>
+                            </div>
+                        </div>`;
                 });
             });
         }
 
-        function sendReply(id) {
-            const text = document.getElementById('rep-' + id).value;
-            if(text) {
-                db.ref('akıs/' + id).update({ yanit: text }).then(() => alert("Yanıt iletildi!"));
+        function addComment(postKey) {
+            const text = document.getElementById('input-' + postKey).value.trim();
+            if(!text) return;
+            db.ref('akıs/' + postKey + '/comments').push({
+                user: myName,
+                text: text,
+                date: Date.now()
+            }).then(() => {
+                document.getElementById('input-' + postKey).value = "";
+            });
+        }
+
+        function togglePin(postKey, currentState) {
+            db.ref('akıs/' + postKey).update({
+                pinned: currentState ? 0 : 1
+            });
+        }
+
+        async function checkAndUpload() {
+            const file = document.getElementById('file-input').files[0];
+            const text = document.getElementById('msg-text').value.trim();
+            if(!file && !text) return alert("Boş bırakma!");
+
+            const btn = document.getElementById('up-btn');
+            btn.disabled = true; btn.innerText = "Yükleniyor...";
+
+            if(file) {
+                const ref = storage.ref('akıs/' + Date.now());
+                const task = ref.put(file);
+                task.on('state_changed', null, null, async () => {
+                    const url = await task.snapshot.ref.getDownloadURL();
+                    db.ref('akıs').push({ kimden: myName, mesaj: text, url: url, tip: file.type, pinned: 0, date: Date.now() });
+                    location.reload();
+                });
+            } else {
+                db.ref('akıs').push({ kimden: myName, mesaj: text, url: "", tip: "", pinned: 0, date: Date.now() });
+                location.reload();
             }
         }
 
-        function logout() {
-            auth.signOut().then(() => {
-                localStorage.clear();
-                window.location.href = "index.html";
-            });
-        }
+        function toggleMenu() { document.getElementById('side-menu').classList.toggle('open'); }
+        function logout() { auth.signOut().then(() => { localStorage.clear(); window.location.href = "index.html"; }); }
     </script>
 </body>
 </html>
