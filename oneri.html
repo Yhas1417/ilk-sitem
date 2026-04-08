@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Öneri Gönder - Sosyal Akış</title>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+    <style>
+        :root { --primary: #1877f2; --bg: #f0f2f5; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        .container { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 450px; text-align: center; }
+        h2 { color: #1c1e21; margin-bottom: 20px; }
+        .input-group { text-align: left; margin-bottom: 15px; }
+        label { display: block; font-size: 14px; font-weight: bold; margin-bottom: 5px; color: #65676b; }
+        input, textarea { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; font-size: 16px; outline: none; font-family: inherit; }
+        textarea { resize: vertical; min-height: 100px; }
+        .btn-send { width: 100%; padding: 14px; border: none; border-radius: 10px; background: var(--primary); color: white; font-weight: bold; cursor: pointer; font-size: 16px; margin-top: 10px; transition: 0.3s; }
+        .btn-send:hover { background: #166fe5; }
+        .btn-back { display: block; margin-top: 20px; color: #65676b; text-decoration: none; font-size: 14px; }
+        #status { margin-top: 15px; font-weight: bold; font-size: 14px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>💡 Bir Önerim Var!</h2>
+    <p style="color: #65676b; font-size: 14px; margin-bottom: 25px;">Sitemizi geliştirmek için fikirlerini bizimle paylaşabilirsin.</p>
+
+    <form id="oneri-form">
+        <div class="input-group">
+            <label>Öneri Başlığı</label>
+            <input type="text" id="oneri-baslik" name="subject" placeholder="Örn: Yeni kategori ekleyelim" required>
+        </div>
+
+        <div class="input-group">
+            <label>Fotoğraf Linki (Opsiyonel)</label>
+            <input type="url" id="oneri-foto" name="photo_url" placeholder="Görsel URL yapıştırın...">
+        </div>
+
+        <div class="input-group">
+            <label>Detaylı Açıklama</label>
+            <textarea id="oneri-metin" name="message" placeholder="Fikrinizi buraya yazın..." required></textarea>
+        </div>
+
+        <button type="submit" class="btn-send" id="btn-text">Öneriyi Admin'e Gönder</button>
+    </form>
+
+    <div id="status"></div>
+    <a href="panel.html" class="btn-back">⬅️ Panele Geri Dön</a>
+</div>
+
+<script type="text/javascript">
+   // EmailJS Başlatma (ÜCRETSİZ HESAP AÇIP BURAYI DOLDURMALISIN)
+   (function(){
+      emailjs.init("YOUR_PUBLIC_KEY"); // EmailJS'den alacağın Public Key
+   })();
+
+   const form = document.getElementById('oneri-form');
+   const statusDiv = document.getElementById('status');
+   const btn = document.getElementById('btn-text');
+
+   form.addEventListener('submit', function(event) {
+        event.preventDefault();
+        btn.innerText = "Gönderiliyor...";
+        btn.disabled = true;
+
+        // oneri.html içindeki ilgili kısım
+        const templateParams = {
+            user_name: localStorage.getItem('user_name') || "Bilinmeyen Kullanıcı",
+            user_email: auth.currentUser ? auth.currentUser.email : "E-posta yok", // Kimden geldiğini bilmen için önemli
+            subject: document.getElementById('oneri-baslik').value,
+            photo_url: document.getElementById('oneri-foto').value || "Fotoğraf eklenmedi",
+            message: document.getElementById('oneri-metin').value
+        };
+
+        // EmailJS Gönderimi
+        emailjs.send('service_iqra', 'template_473n5dj', templateParams)
+            .then(function() {
+                statusDiv.style.color = "#42b72a";
+                statusDiv.innerText = "✅ Öneriniz başarıyla admin mailine iletildi!";
+                form.reset();
+            }, function(error) {
+                statusDiv.style.color = "#ff4757";
+                statusDiv.innerText = "❌ Hata oluştu: " + JSON.stringify(error);
+            })
+            .finally(() => {
+                btn.innerText = "Öneriyi Admin'e Gönder";
+                btn.disabled = false;
+            });
+   });
+</script>
+
+</body>
+</html>
