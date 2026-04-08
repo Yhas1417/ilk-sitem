@@ -52,67 +52,101 @@
     <a href="panel.html" class="btn-back">⬅️ Panele Geri Dön</a>
 </div>
 
-<script type="text/javascript">
-   // Sayfa tamamen yüklendiğinde çalışmasını garanti altına alalım
-   window.onload = function() {
-       
-       // --- 1. EmailJS Başlatma ---
-       emailjs.init("F0PHPWDt14oaE0qiH");
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Öneri Gönder - Sosyal Akış</title>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+    <style>
+        :root { --primary: #1877f2; --bg: #f0f2f5; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        .container { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 450px; text-align: center; }
+        .input-group { text-align: left; margin-bottom: 15px; }
+        label { display: block; font-size: 14px; font-weight: bold; margin-bottom: 5px; color: #65676b; }
+        input, textarea { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; outline: none; }
+        .btn-send { width: 100%; padding: 14px; border: none; border-radius: 10px; background: var(--primary); color: white; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        .btn-send:disabled { background: #ccc; }
+    </style>
+</head>
+<body>
 
-       // --- 2. Firebase Başlatma ---
-       const firebaseConfig = {
-           apiKey: "AIzaSyArIYOp-msUGe_T4bLiVkoDhvXYhLuWVeo",
-           authDomain: "test-sitem.firebaseapp.com",
-           databaseURL: "https://test-sitem-default-rtdb.europe-west1.firebasedatabase.app",
-           projectId: "test-sitem",
-           storageBucket: "test-sitem.firebasestorage.app",
-           messagingSenderId: "97147105273",
-           appId: "1:97147105273:web:6e70cf559735f68fb8d728",
-           measurementId: "G-ETZLC279HD"
-       };
+<div class="container">
+    <h2>💡 Öneri Gönder</h2>
+    <form id="oneri-form">
+        <div class="input-group">
+            <label>Başlık</label>
+            <input type="text" id="subject" required>
+        </div>
+        <div class="input-group">
+            <label>Fotoğraf Seç (Maks 500KB)</label>
+            <input type="file" id="photo" accept="image/*">
+        </div>
+        <div class="input-group">
+            <label>Mesajınız</label>
+            <textarea id="message" rows="4" required></textarea>
+        </div>
+        <button type="submit" id="btn" class="btn-send">Admin'e Gönder</button>
+    </form>
+    <div id="status" style="margin-top:15px;"></div>
+    <a href="panel.html" style="display:block; margin-top:15px; color:#666; text-decoration:none;">⬅️ Geri Dön</a>
+</div>
 
-       // Firebase nesnesinin varlığını kontrol et ve başlat
-       if (typeof firebase !== 'undefined') {
-           firebase.initializeApp(firebaseConfig);
-           const auth = firebase.auth();
+<script>
+    emailjs.init("F0PHPWDt14oaE0qiH"); // BURAYA KENDİ KEY'İNİ YAZ
 
-           const form = document.getElementById('oneri-form');
-           const statusDiv = document.getElementById('status');
-           const btn = document.getElementById('btn-text');
+    const form = document.getElementById('oneri-form');
+    const btn = document.getElementById('btn');
 
-           form.addEventListener('submit', function(event) {
-                event.preventDefault();
-                btn.innerText = "Gönderiliyor...";
-                btn.disabled = true;
+    // Fotoğrafı yazıya (Base64) çeviren fonksiyon
+    const toBase64 = file => new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = error => reject(error);
+    });
 
-                const templateParams = {
-                    user_name: localStorage.getItem('user_name') || "Bilinmeyen Kullanıcı",
-                    user_email: auth.currentUser ? auth.currentUser.email : "E-posta yok", 
-                    subject: document.getElementById('oneri-baslik').value,
-                    photo_url: document.getElementById('oneri-foto').value || "Fotoğraf eklenmedi",
-                    message: document.getElementById('oneri-metin').value
-                };
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        btn.innerText = "Gönderiliyor...";
+        btn.disabled = true;
 
-                emailjs.send('service_iqra', 'template_473n5dj', templateParams)
-                    .then(function() {
-                        statusDiv.style.color = "#42b72a";
-                        statusDiv.innerText = "✅ Öneriniz başarıyla iletildi!";
-                        form.reset();
-                    }, function(error) {
-                        statusDiv.style.color = "#ff4757";
-                        statusDiv.innerText = "❌ Hata oluştu!";
-                        console.log("EmailJS Hatası:", error);
-                    })
-                    .finally(() => {
-                        btn.innerText = "Öneriyi Admin'e Gönder";
-                        btn.disabled = false;
-                    });
-           });
-       } else {
-           console.error("Firebase kütüphanesi yüklenemedi! Bağlantıları kontrol et.");
-       }
-   };
+        const file = document.getElementById('photo').files[0];
+        let base64Photo = "Fotoğraf yok";
+
+        // Eğer fotoğraf seçildiyse çevir
+        if (file) {
+            if (file.size > 500000) { // 500KB sınırı (EmailJS ücretsiz kotası için)
+                alert("Fotoğraf çok büyük! Lütfen 500KB altı bir görsel seçin.");
+                btn.disabled = false;
+                btn.innerText = "Admin'e Gönder";
+                return;
+            }
+            base64Photo = await toBase64(file);
+        }
+
+        const params = {
+            user_name: localStorage.getItem('user_name') || "Bilinmeyen Kullanıcı",
+            subject: document.getElementById('subject').value,
+            message: document.getElementById('message').value,
+            photo_data: base64Photo // Fotoğraf artık bir metin olarak gidiyor
+        };
+
+        emailjs.send("service_iqra", "template_473n5dj", params)
+            .then(() => {
+                document.getElementById('status').innerText = "✅ Başarıyla gönderildi!";
+                form.reset();
+            })
+            .catch(err => alert("Hata: " + JSON.stringify(err)))
+            .finally(() => {
+                btn.disabled = false;
+                btn.innerText = "Admin'e Gönder";
+            });
+    });
 </script>
+</body>
+</html>
 
 </body>
 </html>
