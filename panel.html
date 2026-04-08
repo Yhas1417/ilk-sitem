@@ -9,36 +9,33 @@
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-storage-compat.js"></script>
     <style>
-        :root { --primary: #1877f2; --bg: #f0f2f5; --admin-bg: #fff9c4; --success: #42b72a; --pinned: #fff4e5; }
+        :root { --primary: #1877f2; --bg: #f0f2f5; --pinned: #fff4e5; --comment-pinned: #e7f3ff; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; padding: 10px; display: flex; justify-content: center; }
         
-        /* MENÜ VE SIDEBAR */
+        /* SIDEBAR & NAV */
         .menu-btn { position: fixed; top: 15px; left: 15px; font-size: 24px; cursor: pointer; z-index: 1000; background: white; padding: 5px 12px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         .side-menu { position: fixed; top: 0; left: -280px; width: 280px; height: 100%; background: white; transition: 0.3s; z-index: 1001; box-shadow: 2px 0 10px rgba(0,0,0,0.1); padding: 20px; box-sizing: border-box; }
         .side-menu.open { left: 0; }
-        .menu-close { text-align: right; font-size: 24px; cursor: pointer; color: #666; }
         
         .container { background: white; padding: 20px; border-radius: 20px; width: 100%; max-width: 500px; margin-top: 60px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        textarea { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd; margin: 10px 0; box-sizing: border-box; font-size: 16px; outline: none; resize: vertical; }
-        .file-label { display: block; background: #f0f7ff; padding: 15px; border: 2px dashed var(--primary); border-radius: 12px; cursor: pointer; font-weight: bold; color: var(--primary); margin: 10px 0; }
+        textarea { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd; margin: 10px 0; outline: none; resize: none; }
         
-        /* KART TASARIMI */
+        /* POST CARDS */
         .card { background: white; border-radius: 12px; padding: 15px; margin: 15px 0; border-left: 5px solid var(--primary); box-shadow: 0 2px 5px rgba(0,0,0,0.05); text-align: left; position: relative; }
         .card.pinned { background: var(--pinned); border-left-color: #ff9800; }
-        .pin-icon { position: absolute; top: 10px; right: 10px; font-size: 18px; color: #ff9800; }
+        .media-preview { width: 100%; border-radius: 8px; margin-top: 10px; }
         
-        .media-preview { width: 100%; border-radius: 8px; margin-top: 10px; max-height: 400px; object-fit: contain; }
-        
-        /* YORUM BÖLÜMÜ */
+        /* COMMENTS */
         .comment-section { margin-top: 15px; border-top: 1px solid #eee; padding-top: 10px; }
-        .comment { background: #f8f9fa; padding: 8px 12px; border-radius: 10px; margin-bottom: 5px; font-size: 14px; }
-        .comment b { color: var(--primary); }
+        .comment { background: #f8f9fa; padding: 8px 12px; border-radius: 10px; margin-bottom: 5px; font-size: 14px; position: relative; transition: 0.3s; }
+        .comment.pinned { background: var(--comment-pinned); border: 1px solid var(--primary); }
         .comment-input-area { display: flex; gap: 5px; margin-top: 10px; }
-        .comment-input { flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 8px; outline: none; font-size: 14px; }
-        .btn-send-comment { background: var(--primary); color: white; border: none; padding: 5px 12px; border-radius: 8px; cursor: pointer; }
+        .comment-input { flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 8px; outline: none; }
         
-        .admin-badge { background: #333; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; vertical-align: middle; }
-        .btn-pin { background: none; border: 1px solid #ff9800; color: #ff9800; padding: 2px 8px; border-radius: 5px; font-size: 12px; cursor: pointer; float: right; }
+        /* BUTTONS */
+        .btn-pin { background: none; border: 1px solid #ff9800; color: #ff9800; padding: 2px 8px; border-radius: 5px; font-size: 11px; cursor: pointer; float: right; margin-left: 5px; }
+        .btn-pin-comment { font-size: 10px; cursor: pointer; color: var(--primary); text-decoration: underline; margin-left: 10px; background: none; border: none; }
+        .btn-send { background: var(--primary); color: white; border: none; padding: 5px 12px; border-radius: 8px; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -46,32 +43,26 @@
     <div class="menu-btn" onclick="toggleMenu()">☰</div>
 
     <div id="side-menu" class="side-menu">
-        <div class="menu-close" onclick="toggleMenu()">✕</div>
-        <div class="menu-content">
-            <div class="user-info" style="text-align:center;">
-                <div id="avatar-char" style="width:60px; height:60px; background:var(--primary); color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:24px; margin:0 auto 10px;">?</div>
-                <h4 id="menu-user-name">Kullanıcı</h4>
-            </div>
-            <hr>
-            <div class="menu-item" onclick="window.location.href='hesabim.html'">👤 Hesap Ayarları</div>
-            <div class="menu-item" onclick="logout()" style="color:#ff4757;">🚪 Oturumu Kapat</div>
-        </div>
+        <div class="menu-close" onclick="toggleMenu()" style="text-align:right; cursor:pointer;">✕</div>
+        <div id="avatar-char" style="width:60px; height:60px; background:var(--primary); color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:24px; margin:0 auto 10px;">?</div>
+        <h4 id="menu-user-name" style="text-align:center;">Kullanıcı</h4>
+        <hr>
+        <div class="menu-item" onclick="window.location.href='hesabim.html'" style="padding:15px; cursor:pointer;">👤 Hesap Ayarları</div>
+        <div class="menu-item" onclick="logout()" style="padding:15px; cursor:pointer; color:#ff4757;">🚪 Oturumu Kapat</div>
     </div>
 
     <div class="container">
-        <h3>Merhaba, <span id="display-name" style="color:var(--primary)"></span></h3>
         <div id="upload-area">
-            <textarea id="msg-text" placeholder="Toplulukla paylaş..." maxlength="1000"></textarea>
-            <label class="file-label">📸 Foto/Video Seç <input type="file" id="file-input" style="display:none" accept="image/*,video/*"></label>
-            <button onclick="checkAndUpload()" id="up-btn" style="width:100%; padding:14px; background:var(--primary); color:white; border:none; border-radius:10px; font-weight:bold; cursor:pointer;">Paylaş</button>
+            <textarea id="msg-text" placeholder="Neler oluyor?" rows="3"></textarea>
+            <label style="cursor:pointer; color:var(--primary); font-weight:bold;">📸 Dosya Seç <input type="file" id="file-input" style="display:none"></label>
+            <button onclick="checkAndUpload()" id="up-btn" class="btn-send" style="width:100%; padding:10px; margin-top:10px;">Paylaş</button>
         </div>
-        <hr style="margin:20px 0; border:0; border-top:1px solid #eee;">
         <div id="media-list"></div>
     </div>
 
     <script>
-        // FIREBASE CONFIG
-        const firebaseConfig = {
+        // --- CONFIG ---
+        const firebaseConfig = { 
             apiKey: "AIzaSyArIYOp-msUGe_T4bLiVkoDhvXYhLuWVeo",
             authDomain: "test-sitem.firebaseapp.com",
             databaseURL: "https://test-sitem-default-rtdb.europe-west1.firebasedatabase.app",
@@ -79,62 +70,63 @@
             storageBucket: "test-sitem.firebasestorage.app",
             messagingSenderId: "97147105273",
             appId: "1:97147105273:web:6e70cf559735f68fb8d728",
-            measurementId: "G-ETZLC279HD"
+            measurementId: "G-ETZLC279HD" 
         };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
         const storage = firebase.storage();
         const auth = firebase.auth();
 
-        // ADMİN AYARI
         const ADMIN_MAIL = "yusufkeskin1417@gmail.com"; 
-
-        let currentAdminState = false;
         let myName = localStorage.getItem('user_name') || "Misafir";
+        let isAdmin = false;
 
-        auth.onAuthStateChanged((user) => {
+        auth.onAuthStateChanged(user => {
             if (user) {
-                currentAdminState = (user.email === ADMIN_MAIL);
-                document.getElementById('display-name').innerText = myName;
+                isAdmin = (user.email === ADMIN_MAIL);
                 document.getElementById('menu-user-name').innerText = myName;
                 document.getElementById('avatar-char').innerText = myName.charAt(0).toUpperCase();
-                verileriYukle(currentAdminState);
-            } else {
-                window.location.href = "index.html";
-            }
+                verileriYukle();
+            } else { window.location.href = "index.html"; }
         });
 
-        function verileriYukle(isAdmin) {
+        function verileriYukle() {
             db.ref('akıs').on('value', s => {
                 const list = document.getElementById('media-list');
                 list.innerHTML = "";
                 let posts = [];
+                s.forEach(c => { let p = c.val(); p.key = c.key; posts.push(p); });
 
-                s.forEach(c => {
-                    let post = c.val();
-                    post.key = c.key;
-                    posts.push(post);
-                });
-
-                // SIRALAMA: Sabitlenenler en üste, sonra tarih
+                // Gönderi Sıralama: Sabitlenenler en üstte
                 posts.sort((a, b) => (b.pinned || 0) - (a.pinned || 0));
 
                 posts.forEach(d => {
                     let mediaHtml = d.url ? (d.tip.includes('image') ? `<img src="${d.url}" class="media-preview">` : `<video src="${d.url}" controls class="media-preview"></video>`) : "";
-                    let pinBtn = isAdmin ? `<button class="btn-pin" onclick="togglePin('${d.key}', ${d.pinned})">${d.pinned ? '📌 Sabit Kaldır' : '📌 Sabitle'}</button>` : "";
-                    let pinMark = d.pinned ? `<span class="pin-icon">📌</span>` : "";
-
-                    // Yorumları Listele
-                    let commentsHtml = "";
-                    if (d.comments) {
-                        Object.values(d.comments).forEach(c => {
-                            commentsHtml += `<div class="comment"><b>${c.user}:</b> ${c.text}</div>`;
+                    let pinBtn = isAdmin ? `<button class="btn-pin" onclick="togglePostPin('${d.key}', ${d.pinned || 0})">${d.pinned ? '📍 Sabit Kaldır' : '📌 Sabitle'}</button>` : "";
+                    
+                    // Yorumları İşle ve Sırala
+                    let commentsArr = [];
+                    if(d.comments) {
+                        Object.keys(d.comments).forEach(ckey => {
+                            let cval = d.comments[ckey];
+                            cval.key = ckey;
+                            commentsArr.push(cval);
                         });
+                        // Yorum Sıralama: Sabitlenen yorum en üstte
+                        commentsArr.sort((a, b) => (b.pinned || 0) - (a.pinned || 0));
                     }
+
+                    let commentsHtml = "";
+                    commentsArr.forEach(c => {
+                        let cPinBtn = isAdmin ? `<button class="btn-pin-comment" onclick="toggleCommentPin('${d.key}', '${c.key}', ${c.pinned || 0})">${c.pinned ? 'Sıradan Yap' : 'Sabitle'}</button>` : "";
+                        commentsHtml += `
+                            <div class="comment ${c.pinned ? 'pinned' : ''}">
+                                <b>${c.user}:</b> ${c.text} ${c.pinned ? '📌' : ''} ${cPinBtn}
+                            </div>`;
+                    });
 
                     list.innerHTML += `
                         <div class="card ${d.pinned ? 'pinned' : ''}">
-                            ${pinMark}
                             <b>👤 ${d.kimden}</b> ${pinBtn}
                             <p>${d.mesaj}</p>
                             ${mediaHtml}
@@ -142,7 +134,7 @@
                                 <div id="comments-${d.key}">${commentsHtml}</div>
                                 <div class="comment-input-area">
                                     <input type="text" id="input-${d.key}" class="comment-input" placeholder="Yorum yaz...">
-                                    <button class="btn-send-comment" onclick="addComment('${d.key}')">Gönder</button>
+                                    <button class="btn-send" onclick="addComment('${d.key}')">Gönder</button>
                                 </div>
                             </div>
                         </div>`;
@@ -150,44 +142,43 @@
             });
         }
 
-        function addComment(postKey) {
-            const text = document.getElementById('input-' + postKey).value.trim();
-            if(!text) return;
-            db.ref('akıs/' + postKey + '/comments').push({
-                user: myName,
-                text: text,
-                date: Date.now()
-            }).then(() => {
-                document.getElementById('input-' + postKey).value = "";
-            });
+        // --- FONKSİYONLAR ---
+
+        function togglePostPin(key, current) {
+            db.ref('akıs/' + key).update({ pinned: current === 1 ? 0 : 1 });
         }
 
-        function togglePin(postKey, currentState) {
-            db.ref('akıs/' + postKey).update({
-                pinned: currentState ? 0 : 1
-            });
+        function toggleCommentPin(postKey, commentKey, current) {
+            // Bir gönderide sadece bir yorum sabitlensin istersen önce hepsini 0 yapabilirsin
+            // Ama biz şimdilik bağımsız yaptık
+            db.ref('akıs/' + postKey + '/comments/' + commentKey).update({ pinned: current === 1 ? 0 : 1 });
+        }
+
+        function addComment(key) {
+            const txt = document.getElementById('input-' + key).value.trim();
+            if(!txt) return;
+            db.ref('akıs/' + key + '/comments').push({ user: myName, text: txt, pinned: 0 });
+            document.getElementById('input-' + key).value = "";
         }
 
         async function checkAndUpload() {
             const file = document.getElementById('file-input').files[0];
             const text = document.getElementById('msg-text').value.trim();
-            if(!file && !text) return alert("Boş bırakma!");
-
             const btn = document.getElementById('up-btn');
-            btn.disabled = true; btn.innerText = "Yükleniyor...";
+            btn.disabled = true;
 
             if(file) {
                 const ref = storage.ref('akıs/' + Date.now());
                 const task = ref.put(file);
                 task.on('state_changed', null, null, async () => {
                     const url = await task.snapshot.ref.getDownloadURL();
-                    db.ref('akıs').push({ kimden: myName, mesaj: text, url: url, tip: file.type, pinned: 0, date: Date.now() });
+                    db.ref('akıs').push({ kimden: myName, mesaj: text, url: url, tip: file.type, pinned: 0 });
                     location.reload();
                 });
-            } else {
-                db.ref('akıs').push({ kimden: myName, mesaj: text, url: "", tip: "", pinned: 0, date: Date.now() });
+            } else if(text) {
+                db.ref('akıs').push({ kimden: myName, mesaj: text, url: "", tip: "", pinned: 0 });
                 location.reload();
-            }
+            } else { btn.disabled = false; }
         }
 
         function toggleMenu() { document.getElementById('side-menu').classList.toggle('open'); }
