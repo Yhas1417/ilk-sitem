@@ -50,10 +50,24 @@
 </div>
 
 <script type="text/javascript">
-   // EmailJS Başlatma (ÜCRETSİZ HESAP AÇIP BURAYI DOLDURMALISIN)
+   // 1. EmailJS Başlatma
    (function(){
-      emailjs.init("YOUR_PUBLIC_KEY"); // EmailJS'den alacağın Public Key
+      emailjs.init("F0PHPWDt14oaE0qiH");
    })();
+
+   // 2. Firebase Başlatma (Auth hatasını çözmek için burası şart)
+   const firebaseConfig = {
+       apiKey: "AIzaSyArIYOp-msUGe_T4bLiVkoDhvXYhLuWVeo",
+       authDomain: "test-sitem.firebaseapp.com",
+       databaseURL: "https://test-sitem-default-rtdb.europe-west1.firebasedatabase.app",
+       projectId: "test-sitem",
+       storageBucket: "test-sitem.firebasestorage.app",
+       messagingSenderId: "97147105273",
+       appId: "1:97147105273:web:6e70cf559735f68fb8d728",
+       measurementId: "G-ETZLC279HD"
+   };
+   firebase.initializeApp(firebaseConfig);
+   const auth = firebase.auth(); // İşte hatayı çözen satır bu!
 
    const form = document.getElementById('oneri-form');
    const statusDiv = document.getElementById('status');
@@ -64,16 +78,16 @@
         btn.innerText = "Gönderiliyor...";
         btn.disabled = true;
 
-        // oneri.html içindeki ilgili kısım
+        // Gönderilecek veriler
         const templateParams = {
             user_name: localStorage.getItem('user_name') || "Bilinmeyen Kullanıcı",
-            user_email: auth.currentUser ? auth.currentUser.email : "E-posta yok", // Kimden geldiğini bilmen için önemli
+            // auth.currentUser varsa mailini al, yoksa "E-posta yok" yaz
+            user_email: auth.currentUser ? auth.currentUser.email : "E-posta yok", 
             subject: document.getElementById('oneri-baslik').value,
             photo_url: document.getElementById('oneri-foto').value || "Fotoğraf eklenmedi",
             message: document.getElementById('oneri-metin').value
         };
 
-        // EmailJS Gönderimi
         emailjs.send('service_iqra', 'template_473n5dj', templateParams)
             .then(function() {
                 statusDiv.style.color = "#42b72a";
@@ -81,7 +95,7 @@
                 form.reset();
             }, function(error) {
                 statusDiv.style.color = "#ff4757";
-                statusDiv.innerText = "❌ Hata oluştu: " + JSON.stringify(error);
+                statusDiv.innerText = "❌ Hata: " + JSON.stringify(error);
             })
             .finally(() => {
                 btn.innerText = "Öneriyi Admin'e Gönder";
