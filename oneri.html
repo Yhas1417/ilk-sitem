@@ -80,15 +80,17 @@
         const file = document.getElementById('photo').files[0];
         let base64Photo = "Fotoğraf yok";
 
-        // Eğer fotoğraf seçildiyse çevir
+        // if (file) bloğunun içi
         if (file) {
-            if (file.size > 500000) { // 500KB sınırı (EmailJS ücretsiz kotası için)
-                alert("Fotoğraf çok büyük! Lütfen 500KB altı bir görsel seçin.");
+            // 2MB'dan büyük dosyaları işlemeye bile gerek yok, reddet
+            if (file.size > 2000000) { 
+                alert("Dosya çok büyük! Lütfen daha küçük bir görsel seçin.");
                 btn.disabled = false;
                 btn.innerText = "Admin'e Gönder";
                 return;
             }
-            base64Photo = await toBase64(file);
+            // Fotoğrafı sıkıştır ve çevir
+            base64Photo = await processImage(file);
         }
 
         const params = {
