@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-auth-compat.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Öneri Gönder - Sosyal Akış</title>
@@ -50,58 +53,65 @@
 </div>
 
 <script type="text/javascript">
-   // 1. EmailJS Başlatma
-   (function(){
-      emailjs.init("F0PHPWDt14oaE0qiH");
-   })();
+   // Sayfa tamamen yüklendiğinde çalışmasını garanti altına alalım
+   window.onload = function() {
+       
+       // --- 1. EmailJS Başlatma ---
+       emailjs.init("F0PHPWDt14oaE0qiH");
 
-   // 2. Firebase Başlatma (Auth hatasını çözmek için burası şart)
-   const firebaseConfig = {
-       apiKey: "AIzaSyArIYOp-msUGe_T4bLiVkoDhvXYhLuWVeo",
-       authDomain: "test-sitem.firebaseapp.com",
-       databaseURL: "https://test-sitem-default-rtdb.europe-west1.firebasedatabase.app",
-       projectId: "test-sitem",
-       storageBucket: "test-sitem.firebasestorage.app",
-       messagingSenderId: "97147105273",
-       appId: "1:97147105273:web:6e70cf559735f68fb8d728",
-       measurementId: "G-ETZLC279HD"
+       // --- 2. Firebase Başlatma ---
+       const firebaseConfig = {
+           apiKey: "AIzaSyArIYOp-msUGe_T4bLiVkoDhvXYhLuWVeo",
+           authDomain: "test-sitem.firebaseapp.com",
+           databaseURL: "https://test-sitem-default-rtdb.europe-west1.firebasedatabase.app",
+           projectId: "test-sitem",
+           storageBucket: "test-sitem.firebasestorage.app",
+           messagingSenderId: "97147105273",
+           appId: "1:97147105273:web:6e70cf559735f68fb8d728",
+           measurementId: "G-ETZLC279HD"
+       };
+
+       // Firebase nesnesinin varlığını kontrol et ve başlat
+       if (typeof firebase !== 'undefined') {
+           firebase.initializeApp(firebaseConfig);
+           const auth = firebase.auth();
+
+           const form = document.getElementById('oneri-form');
+           const statusDiv = document.getElementById('status');
+           const btn = document.getElementById('btn-text');
+
+           form.addEventListener('submit', function(event) {
+                event.preventDefault();
+                btn.innerText = "Gönderiliyor...";
+                btn.disabled = true;
+
+                const templateParams = {
+                    user_name: localStorage.getItem('user_name') || "Bilinmeyen Kullanıcı",
+                    user_email: auth.currentUser ? auth.currentUser.email : "E-posta yok", 
+                    subject: document.getElementById('oneri-baslik').value,
+                    photo_url: document.getElementById('oneri-foto').value || "Fotoğraf eklenmedi",
+                    message: document.getElementById('oneri-metin').value
+                };
+
+                emailjs.send('service_iqra', 'template_473n5dj', templateParams)
+                    .then(function() {
+                        statusDiv.style.color = "#42b72a";
+                        statusDiv.innerText = "✅ Öneriniz başarıyla iletildi!";
+                        form.reset();
+                    }, function(error) {
+                        statusDiv.style.color = "#ff4757";
+                        statusDiv.innerText = "❌ Hata oluştu!";
+                        console.log("EmailJS Hatası:", error);
+                    })
+                    .finally(() => {
+                        btn.innerText = "Öneriyi Admin'e Gönder";
+                        btn.disabled = false;
+                    });
+           });
+       } else {
+           console.error("Firebase kütüphanesi yüklenemedi! Bağlantıları kontrol et.");
+       }
    };
-   firebase.initializeApp(firebaseConfig);
-   const auth = firebase.auth(); // İşte hatayı çözen satır bu!
-
-   const form = document.getElementById('oneri-form');
-   const statusDiv = document.getElementById('status');
-   const btn = document.getElementById('btn-text');
-
-   form.addEventListener('submit', function(event) {
-        event.preventDefault();
-        btn.innerText = "Gönderiliyor...";
-        btn.disabled = true;
-
-        // Gönderilecek veriler
-        const templateParams = {
-            user_name: localStorage.getItem('user_name') || "Bilinmeyen Kullanıcı",
-            // auth.currentUser varsa mailini al, yoksa "E-posta yok" yaz
-            user_email: auth.currentUser ? auth.currentUser.email : "E-posta yok", 
-            subject: document.getElementById('oneri-baslik').value,
-            photo_url: document.getElementById('oneri-foto').value || "Fotoğraf eklenmedi",
-            message: document.getElementById('oneri-metin').value
-        };
-
-        emailjs.send('service_iqra', 'template_473n5dj', templateParams)
-            .then(function() {
-                statusDiv.style.color = "#42b72a";
-                statusDiv.innerText = "✅ Öneriniz başarıyla admin mailine iletildi!";
-                form.reset();
-            }, function(error) {
-                statusDiv.style.color = "#ff4757";
-                statusDiv.innerText = "❌ Hata: " + JSON.stringify(error);
-            })
-            .finally(() => {
-                btn.innerText = "Öneriyi Admin'e Gönder";
-                btn.disabled = false;
-            });
-   });
 </script>
 
 </body>
