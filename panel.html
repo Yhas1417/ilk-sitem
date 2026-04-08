@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hobi Sosyal Akış - Panel</title>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-storage-compat.js"></script>
     <style>
@@ -80,21 +81,34 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
         const storage = firebase.storage();
+        const auth = firebase.auth();
 
-        // --- 2. ADMİN BİLGİLERİ (BURAYI DOLDURUN) ---
-        const GERCEK_ADMIN_ADI = "Yusuf Keskin"; 
-        const GERCEK_ADMIN_SIFRE = "1417admin1417"; 
+        // --- 2. GÜNCEL ADMİN KONTROLÜ ---
+        const ADMIN_MAIL = "yusufkeskin1417@gmail.com"; // BURAYA KENDİ GMAİL ADRESİNİ YAZ
+        const ADMIN_ADI = "Yusuf Keskin";
+        const ADMIN_SIFRE = "Yusuf148148";
 
-        const currentUser = localStorage.getItem('user_name');
-        const currentPass = localStorage.getItem('user_pass');
+        let currentAdminState = false;
 
-        if(!currentUser) { 
-            window.location.href = "index.html"; 
-        } else { 
-            document.getElementById('display-name').innerText = currentUser;
-            document.getElementById('menu-user-name').innerText = currentUser;
-            document.getElementById('avatar-char').innerText = currentUser.charAt(0).toUpperCase();
-        }
+        // Oturum durumunu ve adminliği kontrol et
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                const currentUser = localStorage.getItem('user_name') || "Kullanıcı";
+                const currentPass = localStorage.getItem('user_pass');
+                
+                // Adminlik şartı: Ya mail adresi eşleşmeli ya da manuel şifre doğru olmalı
+                currentAdminState = (user.email === ADMIN_MAIL) || (currentUser === ADMIN_ADI && currentPass === ADMIN_SIFRE);
+                
+                document.getElementById('display-name').innerText = currentUser;
+                document.getElementById('menu-user-name').innerText = currentUser;
+                document.getElementById('avatar-char').innerText = currentUser.charAt(0).toUpperCase();
+                
+                // Akışı admin yetkisine göre yükle
+                verileriYukle(currentAdminState);
+            } else {
+                window.location.href = "index.html";
+            }
+        });
 
         function toggleMenu() { document.getElementById('side-menu').classList.toggle('open'); }
 
@@ -102,24 +116,25 @@
             const file = document.getElementById('file-input').files[0];
             const text = document.getElementById('msg-text').value.trim();
             const btn = document.getElementById('up-btn');
-            if(!file && !text) return alert("Boş gönderemezsin!");
+            if(!file && !text) return alert("İçerik boş olamaz!");
 
-            // GÜNLÜK 3 MESAJ SINIRI
-            if (currentUser !== GERCEK_ADMIN_ADI) {
+            // Admin değilse günlük limit kontrolü
+            if (!currentAdminState) {
                 const bugun = new Date().toLocaleDateString('tr-TR');
-                const snapshot = await db.ref('akıs').orderByChild('kimden').equalTo(currentUser).once('value');
+                const name = localStorage.getItem('user_name');
+                const snapshot = await db.ref('akıs').orderByChild('kimden').equalTo(name).once('value');
                 let sayac = 0;
                 snapshot.forEach(c => { if(c.val().tarih && c.val().tarih.includes(bugun)) sayac++; });
                 if(sayac >= 3) return alert("Günlük 3 paylaşım limitine ulaştınız!");
             }
 
             if (file && file.type.includes('video')) {
-                btn.disabled = true; btn.innerText = "Süre kontrolü...";
+                btn.disabled = true; btn.innerText = "Süre kontrol ediliyor...";
                 const video = document.createElement('video');
                 video.preload = 'metadata';
                 video.onloadedmetadata = function() {
                     window.URL.revokeObjectURL(video.src);
-                    if (video.duration > 60) { alert("Video 1 dk'dan uzun olamaz!"); btn.disabled = false; btn.innerText = "Paylaş"; } 
+                    if (video.duration > 60) { alert("Video 1 dakikadan uzun olamaz!"); btn.disabled = false; btn.innerText = "Paylaş"; } 
                     else { proceedUpload(file, text); }
                 };
                 video.src = URL.createObjectURL(file);
@@ -128,20 +143,22 @@
 
         async function proceedUpload(file, text) {
             const btn = document.getElementById('up-btn');
+            const name = localStorage.getItem('user_name');
             btn.disabled = true; btn.innerText = "Yükleniyor...";
+            
             if(file) {
                 const ref = storage.ref('akıs/' + Date.now());
                 const task = ref.put(file);
                 task.on('state_changed', (s) => { document.getElementById('progress-bar').style.width = (s.bytesTransferred / s.totalBytes) * 100 + "%"; }, null, async () => {
                     const url = await task.snapshot.ref.getDownloadURL();
-                    saveData(text, url, file.type);
+                    saveData(name, text, url, file.type);
                 });
-            } else { saveData(text, "", ""); }
+            } else { saveData(name, text, "", ""); }
         }
 
-        function saveData(text, url, type) {
+        function saveData(name, text, url, type) {
             db.ref('akıs').push({
-                kimden: currentUser,
+                kimden: name,
                 mesaj: text,
                 url: url,
                 tip: type,
@@ -149,46 +166,51 @@
                 yanit: ""
             }).then(() => {
                 document.getElementById('status-msg').style.display = "block";
-                document.getElementById('status-msg').innerText = "✅ Paylaşıldı!";
+                document.getElementById('status-msg').innerText = "✅ Başarıyla Paylaşıldı!";
                 setTimeout(() => location.reload(), 1500);
             });
         }
 
-        // AKIŞ VE ADMİN KONTROLÜ
-        db.ref('akıs').on('value', s => {
-            const list = document.getElementById('media-list');
-            list.innerHTML = "";
-            const isAdmin = (currentUser === GERCEK_ADMIN_ADI && currentPass === GERCEK_ADMIN_SIFRE);
+        function verileriYukle(isAdmin) {
+            db.ref('akıs').on('value', s => {
+                const list = document.getElementById('media-list');
+                list.innerHTML = "";
 
-            s.forEach(c => {
-                const d = c.val();
-                let mediaHtml = d.url ? (d.tip.includes('image') ? `<img src="${d.url}" class="media-preview">` : `<video src="${d.url}" controls class="media-preview"></video>`) : "";
-                let yanitHtml = d.yanit ? `<div class="reply-box"><b>👑 Admin Yanıtı:</b><br>${d.yanit}</div>` : "";
-                
-                let adminOps = isAdmin ? `
-                    <div style="margin-top:10px; display:flex; gap:5px;">
-                        <input type="text" id="rep-${c.key}" placeholder="Yanıtla..." style="flex:1; padding:8px; border-radius:8px; border:1px solid #ddd;">
-                        <button onclick="sendReply('${c.key}')" style="background:#333; color:white; border:none; padding:8px 12px; border-radius:8px; cursor:pointer;">Gönder</button>
-                    </div>` : "";
+                s.forEach(c => {
+                    const d = c.val();
+                    let mediaHtml = d.url ? (d.tip.includes('image') ? `<img src="${d.url}" class="media-preview">` : `<video src="${d.url}" controls class="media-preview"></video>`) : "";
+                    let yanitHtml = d.yanit ? `<div class="reply-box"><b>👑 Admin Yanıtı:</b><br>${d.yanit}</div>` : "";
+                    
+                    let adminOps = isAdmin ? `
+                        <div style="margin-top:10px; display:flex; gap:5px;">
+                            <input type="text" id="rep-${c.key}" placeholder="Yanıtla..." style="flex:1; padding:8px; border-radius:8px; border:1px solid #ddd;">
+                            <button onclick="sendReply('${c.key}')" style="background:#333; color:white; border:none; padding:8px 12px; border-radius:8px; cursor:pointer;">Gönder</button>
+                        </div>` : "";
 
-                list.innerHTML = `
-                    <div class="card">
-                        <b>👤 ${d.kimden}</b> <small style="float:right; color:#888;">${d.tarih || ""}</small>
-                        <p style="margin:10px 0;">${d.mesaj}</p>
-                        ${mediaHtml}${yanitHtml}${adminOps}
-                    </div>
-                ` + list.innerHTML;
+                    list.innerHTML = `
+                        <div class="card">
+                            <b>👤 ${d.kimden}</b> <small style="float:right; color:#888;">${d.tarih || ""}</small>
+                            <p style="margin:10px 0;">${d.mesaj}</p>
+                            ${mediaHtml}${yanitHtml}${adminOps}
+                        </div>
+                    ` + list.innerHTML;
+                });
             });
-        });
+        }
 
         function sendReply(id) {
             const text = document.getElementById('rep-' + id).value;
             if(text) {
-                db.ref('akıs/' + id).update({ yanit: text }).then(() => alert("Yanıtlandı!"));
+                db.ref('akıs/' + id).update({ yanit: text }).then(() => alert("Yanıt iletildi!"));
             }
         }
 
-        function logout() { localStorage.clear(); window.location.href = "index.html"; }
+        function logout() {
+            auth.signOut().then(() => {
+                localStorage.clear();
+                window.location.href = "index.html";
+            });
+        }
     </script>
 </body>
 </html>
