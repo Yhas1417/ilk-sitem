@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Öneri Gönder - Sosyal Akış</title>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-storage-compat.js"></script>
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
     <style>
         :root { --primary: #1877f2; --bg: #f0f2f5; }
@@ -39,78 +43,100 @@
     <a href="panel.html" style="display:block; margin-top:15px; color:#666; text-decoration:none;">⬅️ Geri Dön</a>
 </div>
 
-<script>
-    emailjs.init("F0PHPWDt14oaE0qiH"); // BURAYA KENDİ KEY'İNİ YAZ
+<script type="text/javascript">
+   // 1. EmailJS Başlatma
+   (function(){
+      emailjs.init("F0PHPWDt14oaE0qiH");
+   })();
 
-    const form = document.getElementById('oneri-form');
-    const btn = document.getElementById('btn');
+   // 2. Firebase Başlatma
+   const firebaseConfig = {
+       apiKey: "AIzaSyArIYOp-msUGe_T4bLiVkoDhvXYhLuWVeo",
+       authDomain: "test-sitem.firebaseapp.com",
+       databaseURL: "https://test-sitem-default-rtdb.europe-west1.firebasedatabase.app",
+       projectId: "test-sitem",
+       storageBucket: "test-sitem.firebasestorage.app",
+       messagingSenderId: "97147105273",
+       appId: "1:97147105273:web:6e70cf559735f68fb8d728",
+       measurementId: "G-ETZLC279HD"
+   };
+   firebase.initializeApp(firebaseConfig);
+   const auth = firebase.auth();
+   const db = firebase.database();
+   const storage = firebase.storage();
 
-    // Fotoğrafı yazıya (Base64) çeviren fonksiyon
-    // Eski toBase64 yerine bu gelişmiş fonksiyonu kullan:
-    const processImage = (file) => new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = (event) => {
-            const img = new Image();
-            img.src = event.target.result;
-            img.onload = () => {
-                const canvas = document.createElement('canvas');
-                const MAX_WIDTH = 800; // Fotoğrafı maksimum 800px genişliğe çeker
-                const scaleSize = MAX_WIDTH / img.width;
-            
-                canvas.width = MAX_WIDTH;
-                canvas.height = img.height * scaleSize;
+   const form = document.getElementById('oneri-form');
+   const statusDiv = document.getElementById('status');
+   const btn = document.getElementById('btn-text');
 
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-                // 0.7 kalitesi ile fotoğrafı JPEG'e çevir (Boyutu inanılmaz düşürür)
-                const dataUrl = canvas.toDataURL('image/jpeg', 0.7); 
-                resolve(dataUrl);
-            };
-        };
-        reader.onerror = error => reject(error);
-    });
-
-    form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        btn.innerText = "Gönderiliyor...";
+   form.addEventListener('submit', async function(event) {
+        event.preventDefault();
+        const myName = localStorage.getItem('user_name') || "Bilinmeyen Kullanıcı";
+        
+        btn.innerText = "Kontrol ediliyor...";
         btn.disabled = true;
 
-        const file = document.getElementById('photo').files[0];
-        let base64Photo = "Fotoğraf yok";
+        // --- GÜNLÜK 3 ÖNERİ SINIRI KONTROLÜ ---
+        const bugun = new Date().toLocaleDateString('tr-TR');
+        const snapshot = await db.ref('oneriler_log').orderByChild('kimden').equalTo(myName).once('value');
+        
+        let bugunkuOneriSayisi = 0;
+        snapshot.forEach(child => {
+            if(child.val().tarih === bugun) bugunkuOneriSayisi++;
+        });
 
-        // if (file) bloğunun içi
-        if (file) {
-            // 2MB'dan büyük dosyaları işlemeye bile gerek yok, reddet
-            if (file.size > 2000000) { 
-                alert("Dosya çok büyük! Lütfen daha küçük bir görsel seçin.");
-                btn.disabled = false;
-                btn.innerText = "Admin'e Gönder";
-                return;
-            }
-            // Fotoğrafı sıkıştır ve çevir
-            base64Photo = await processImage(file);
+        if (bugunkuOneriSayisi >= 3) {
+            statusDiv.style.color = "#ff4757";
+            statusDiv.innerText = "⚠️ Günlük 3 öneri limitine ulaştınız. Yarın tekrar deneyebilirsiniz!";
+            btn.innerText = "Limit Doldu";
+            return;
         }
 
-        const params = {
-            user_name: localStorage.getItem('user_name') || "Bilinmeyen Kullanıcı",
-            subject: document.getElementById('subject').value,
-            message: document.getElementById('message').value,
-            photo_data: base64Photo // Fotoğraf artık bir metin olarak gidiyor
+        // --- FOTOĞRAF YÜKLEME (FIREBASE STORAGE) ---
+        btn.innerText = "Fotoğraf Yükleniyor...";
+        const file = document.getElementById('oneri-dosya').files[0];
+        let photoUrl = "Fotoğraf eklenmedi";
+
+        if (file) {
+            try {
+                const fileRef = storage.ref('oneriler/' + Date.now() + "_" + file.name);
+                await fileRef.put(file);
+                photoUrl = await fileRef.getDownloadURL();
+            } catch (err) {
+                console.error("Yükleme hatası:", err);
+            }
+        }
+
+        // --- EMAILJS GÖNDERİMİ ---
+        btn.innerText = "Mail Gönderiliyor...";
+        const templateParams = {
+            user_name: myName,
+            user_email: auth.currentUser ? auth.currentUser.email : "E-posta yok",
+            subject: document.getElementById('oneri-baslik').value,
+            photo_url: photoUrl, // Artık kalıcı bir Firebase linki gidiyor
+            message: document.getElementById('oneri-metin').value
         };
 
-        emailjs.send("service_iqra", "template_473n5dj", params)
-            .then(() => {
-                document.getElementById('status').innerText = "✅ Başarıyla gönderildi!";
+        emailjs.send('service_iqra', 'template_473n5dj', templateParams)
+            .then(async function() {
+                // Gönderim başarılıysa log tut (limit için)
+                await db.ref('oneriler_log').push({
+                    kimden: myName,
+                    tarih: bugun
+                });
+
+                statusDiv.style.color = "#42b72a";
+                statusDiv.innerText = "✅ Öneriniz başarıyla admin mailine iletildi!";
                 form.reset();
+            }, function(error) {
+                statusDiv.style.color = "#ff4757";
+                statusDiv.innerText = "❌ Hata oluştu!";
             })
-            .catch(err => alert("Hata: " + JSON.stringify(err)))
             .finally(() => {
+                btn.innerText = "Öneriyi Admin'e Gönder";
                 btn.disabled = false;
-                btn.innerText = "Admin'e Gönder";
             });
-    });
+   });
 </script>
 </body>
 </html>
