@@ -53,96 +53,108 @@
 </div>
 
 <script type="text/javascript">
-    // --- CONFIG --- (Buraları Kendi Bilgilerinle Doldur)
-    const firebaseConfig = {
-        apiKey: "AIzaSyArIYOp-msUGe_T4bLiVkoDhvXYhLuWVeo",
-        authDomain: "test-sitem.firebaseapp.com",
-        databaseURL: "https://test-sitem-default-rtdb.europe-west1.firebasedatabase.app",
-        projectId: "test-sitem",
-        storageBucket: "test-sitem.firebasestorage.app",
-        messagingSenderId: "97147105273",
-        appId: "1:97147105273:web:6e70cf559735f68fb8d728",
-        measurementId: "G-ETZLC279HD"
-    };
-
-    // Firebase & EmailJS Başlatma
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const db = firebase.database();
-    const storage = firebase.storage();
-    emailjs.init("F0PHPWDt14oaE0qiH");
-
-    const form = document.getElementById('oneri-form');
-    const statusDiv = document.getElementById('status');
-    const btn = document.getElementById('btn-text');
-
-    form.addEventListener('submit', async function(event) {
-        event.preventDefault();
-        const myName = localStorage.getItem('user_name') || "Bilinmeyen Kullanıcı";
+    // SAYFA TAMAMEN YÜKLENDİĞİNDE ÇALIŞSIN
+    window.onload = function() {
         
-        // Element kontrolü (Hata almamak için)
-        if (!statusDiv || !btn) return;
+        // --- CONFIG --- (Buraları doldurmayı unutma)
+        const firebaseConfig = {
+            apiKey: "AIzaSyArIYOp-msUGe_T4bLiVkoDhvXYhLuWVeo",
+            authDomain: "test-sitem.firebaseapp.com",
+            databaseURL: "https://test-sitem-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "test-sitem",
+            storageBucket: "test-sitem.firebasestorage.app",
+            messagingSenderId: "97147105273",
+            appId: "1:97147105273:web:6e70cf559735f68fb8d728",
+            measurementId: "G-ETZLC279HD"
+        };
 
-        btn.innerText = "Kontrol ediliyor...";
-        btn.disabled = true;
+        // Başlatma İşlemleri
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.database();
+        const storage = firebase.storage();
+        emailjs.init("F0PHPWDt14oaE0qiH");
 
-        try {
-            // 1. Günlük 3 Öneri Sınırı Kontrolü
-            const bugun = new Date().toLocaleDateString('tr-TR');
-            const snapshot = await db.ref('oneriler_log').orderByChild('kimden').equalTo(myName).once('value');
-            
-            let bugunkuOneriSayisi = 0;
-            snapshot.forEach(child => {
-                if(child.val().tarih === bugun) bugunkuOneriSayisi++;
+        // Elementleri burada yakalıyoruz
+        const form = document.getElementById('oneri-form');
+        const statusDiv = document.getElementById('status');
+        const btn = document.getElementById('btn-text');
+
+        // Form gönderildiğinde
+        if (form) {
+            form.addEventListener('submit', async function(event) {
+                event.preventDefault();
+                
+                const myName = localStorage.getItem('user_name') || "Bilinmeyen Kullanıcı";
+                
+                // Güvenlik kontrolü
+                if (!statusDiv || !btn) {
+                    console.error("Hata: HTML elementleri bulunamadı!");
+                    return;
+                }
+
+                btn.innerText = "Kontrol ediliyor...";
+                btn.disabled = true;
+
+                try {
+                    // 1. Limit Kontrolü
+                    const bugun = new Date().toLocaleDateString('tr-TR');
+                    const snapshot = await db.ref('oneriler_log').orderByChild('kimden').equalTo(myName).once('value');
+                    
+                    let bugunkuOneriSayisi = 0;
+                    snapshot.forEach(child => {
+                        if(child.val().tarih === bugun) bugunkuOneriSayisi++;
+                    });
+
+                    if (bugunkuOneriSayisi >= 3) {
+                        statusDiv.style.color = "#ff4757";
+                        statusDiv.innerText = "⚠️ Günlük 3 öneri limitine ulaştınız!";
+                        btn.innerText = "Limit Doldu";
+                        btn.disabled = true;
+                        return;
+                    }
+
+                    // 2. Fotoğraf Yükleme
+                    const file = document.getElementById('oneri-dosya').files[0];
+                    let photoUrl = "Fotoğraf eklenmedi";
+
+                    if (file) {
+                        btn.innerText = "Fotoğraf Yükleniyor...";
+                        const fileRef = storage.ref('oneriler/' + Date.now() + "_" + file.name);
+                        await fileRef.put(file);
+                        photoUrl = await fileRef.getDownloadURL();
+                    }
+
+                    // 3. EmailJS
+                    btn.innerText = "Mail Gönderiliyor...";
+                    const templateParams = {
+                        user_name: myName,
+                        user_email: auth.currentUser ? auth.currentUser.email : "E-posta yok",
+                        subject: document.getElementById('oneri-baslik').value,
+                        photo_url: photoUrl,
+                        message: document.getElementById('oneri-metin').value
+                    };
+
+                    await emailjs.send('service_iqra', 'template_473n5dj', templateParams);
+
+                    // 4. Başarılı İşlem
+                    await db.ref('oneriler_log').push({ kimden: myName, tarih: bugun });
+
+                    statusDiv.style.color = "#42b72a";
+                    statusDiv.innerText = "✅ Öneriniz admin mailine iletildi!";
+                    form.reset();
+
+                } catch (error) {
+                    console.error("Hata Detayı:", error);
+                    statusDiv.style.color = "#ff4757";
+                    statusDiv.innerText = "❌ Bir hata oluştu.";
+                } finally {
+                    btn.innerText = "Öneriyi Admin'e Gönder";
+                    btn.disabled = false;
+                }
             });
-
-            if (bugunkuOneriSayisi >= 3) {
-                statusDiv.style.color = "#ff4757";
-                statusDiv.innerText = "⚠️ Günlük 3 öneri limitine ulaştınız!";
-                btn.innerText = "Limit Doldu";
-                return;
-            }
-
-            // 2. Fotoğraf Yükleme (Eğer seçildiyse)
-            btn.innerText = "Fotoğraf Yükleniyor...";
-            const file = document.getElementById('oneri-dosya').files[0];
-            let photoUrl = "Fotoğraf eklenmedi";
-
-            if (file) {
-                const fileRef = storage.ref('oneriler/' + Date.now() + "_" + file.name);
-                await fileRef.put(file);
-                photoUrl = await fileRef.getDownloadURL();
-            }
-
-            // 3. EmailJS Gönderimi
-            btn.innerText = "Mail Gönderiliyor...";
-            const templateParams = {
-                user_name: myName,
-                user_email: auth.currentUser ? auth.currentUser.email : "E-posta yok",
-                subject: document.getElementById('oneri-baslik').value,
-                photo_url: photoUrl,
-                message: document.getElementById('oneri-metin').value
-            };
-
-            await emailjs.send('service_iqra', 'template_473n5dj', templateParams);
-
-            // 4. Başarılıysa Log Tut ve Sıfırla
-            await db.ref('oneriler_log').push({ kimden: myName, tarih: bugun });
-
-            statusDiv.style.color = "#42b72a";
-            statusDiv.innerText = "✅ Öneriniz başarıyla iletildi!";
-            form.reset();
-
-        } catch (error) {
-            console.error(error);
-            statusDiv.style.color = "#ff4757";
-            statusDiv.innerText = "❌ Bir hata oluştu. Lütfen tekrar deneyin.";
-        } finally {
-            btn.innerText = "Öneriyi Admin'e Gönder";
-            btn.disabled = false;
         }
-    });
+    };
 </script>
-
 </body>
 </html>
