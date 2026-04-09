@@ -39,7 +39,7 @@
         </div>
         <button type="submit" id="btn" class="btn-send">Admin'e Gönder</button>
     </form>
-    <div id="status" style="margin-top:15px;"></div>
+    <div id="status" style="margin-top: 15px; font-weight: bold; min-height: 20px;"></div>
     <a href="panel.html" style="display:block; margin-top:15px; color:#666; text-decoration:none;">⬅️ Geri Dön</a>
 </div>
 
@@ -66,14 +66,19 @@
    const storage = firebase.storage();
 
    const form = document.getElementById('oneri-form');
-   const statusDiv = document.getElementById('status');
+   const statusDiv = document.getElementById('status'); // Buradaki 'status' ile HTML'deki id aynı olmalı
    const btn = document.getElementById('btn-text');
 
    form.addEventListener('submit', async function(event) {
         event.preventDefault();
-        const myName = localStorage.getItem('user_name') || "Bilinmeyen Kullanıcı";
-        
-        btn.innerText = "Kontrol ediliyor...";
+    
+        // Güvenlik kontrolü: statusDiv gerçekten var mı?
+        if (!statusDiv) {
+            console.error("Hata: 'status' ID'li div bulunamadı!");
+            return;
+       }
+
+        statusDiv.innerText = "Kontrol ediliyor..."; // Hata burada (76. satırda) veriyordu
         btn.disabled = true;
 
         // --- GÜNLÜK 3 ÖNERİ SINIRI KONTROLÜ ---
