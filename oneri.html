@@ -4,144 +4,145 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Öneri Gönder - Sosyal Akış</title>
+    
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-storage-compat.js"></script>
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+
     <style>
         :root { --primary: #1877f2; --bg: #f0f2f5; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
         .container { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 450px; text-align: center; }
         .input-group { text-align: left; margin-bottom: 15px; }
         label { display: block; font-size: 14px; font-weight: bold; margin-bottom: 5px; color: #65676b; }
-        input, textarea { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; outline: none; }
-        .btn-send { width: 100%; padding: 14px; border: none; border-radius: 10px; background: var(--primary); color: white; font-weight: bold; cursor: pointer; margin-top: 10px; }
-        .btn-send:disabled { background: #ccc; }
+        input, textarea { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; outline: none; font-family: inherit; }
+        .btn-send { width: 100%; padding: 14px; border: none; border-radius: 10px; background: var(--primary); color: white; font-weight: bold; cursor: pointer; font-size: 16px; margin-top: 10px; }
+        .btn-send:disabled { background: #ccc; cursor: not-allowed; }
+        #status { margin-top: 15px; font-weight: bold; font-size: 14px; min-height: 20px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>💡 Öneri Gönder</h2>
+    <h2>💡 Bir Önerim Var!</h2>
+    <p style="color: #65676b; font-size: 14px; margin-bottom: 25px;">Fikirlerin bizim için değerli. (Günlük limit: 3)</p>
+
     <form id="oneri-form">
         <div class="input-group">
-            <label>Başlık</label>
-            <input type="text" id="subject" required>
+            <label>Öneri Başlığı</label>
+            <input type="text" id="oneri-baslik" required placeholder="Örn: Uygulama tasarımı hakkında">
         </div>
+
         <div class="input-group">
-            <label>Fotoğraf Seç</label>
-            <input type="file" id="photo" accept="image/*">
+            <label>Fotoğraf Seç (Opsiyonel)</label>
+            <input type="file" id="oneri-dosya" accept="image/*">
         </div>
+
         <div class="input-group">
-            <label>Mesajınız</label>
-            <textarea id="message" rows="4" required></textarea>
+            <label>Detaylı Açıklama</label>
+            <textarea id="oneri-metin" required placeholder="Fikrinizi buraya yazın..."></textarea>
         </div>
-        <button type="submit" id="btn" class="btn-send">Admin'e Gönder</button>
+
+        <button type="submit" class="btn-send" id="btn-text">Öneriyi Admin'e Gönder</button>
     </form>
-    <div id="status" style="margin-top: 15px; font-weight: bold; min-height: 20px;"></div>
-    <a href="panel.html" style="display:block; margin-top:15px; color:#666; text-decoration:none;">⬅️ Geri Dön</a>
+
+    <div id="status"></div>
+    <a href="panel.html" style="display:block; margin-top:20px; color:#65676b; text-decoration:none; font-size:14px;">⬅️ Panele Geri Dön</a>
 </div>
 
 <script type="text/javascript">
-   // 1. EmailJS Başlatma
-   (function(){
-      emailjs.init("F0PHPWDt14oaE0qiH");
-   })();
+    // --- CONFIG --- (Buraları Kendi Bilgilerinle Doldur)
+    const firebaseConfig = {
+        apiKey: "AIzaSyArIYOp-msUGe_T4bLiVkoDhvXYhLuWVeo",
+        authDomain: "test-sitem.firebaseapp.com",
+        databaseURL: "https://test-sitem-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "test-sitem",
+        storageBucket: "test-sitem.firebasestorage.app",
+        messagingSenderId: "97147105273",
+        appId: "1:97147105273:web:6e70cf559735f68fb8d728",
+        measurementId: "G-ETZLC279HD"
+    };
 
-   // 2. Firebase Başlatma
-   const firebaseConfig = {
-       apiKey: "AIzaSyArIYOp-msUGe_T4bLiVkoDhvXYhLuWVeo",
-       authDomain: "test-sitem.firebaseapp.com",
-       databaseURL: "https://test-sitem-default-rtdb.europe-west1.firebasedatabase.app",
-       projectId: "test-sitem",
-       storageBucket: "test-sitem.firebasestorage.app",
-       messagingSenderId: "97147105273",
-       appId: "1:97147105273:web:6e70cf559735f68fb8d728",
-       measurementId: "G-ETZLC279HD"
-   };
-   firebase.initializeApp(firebaseConfig);
-   const auth = firebase.auth();
-   const db = firebase.database();
-   const storage = firebase.storage();
+    // Firebase & EmailJS Başlatma
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.database();
+    const storage = firebase.storage();
+    emailjs.init("F0PHPWDt14oaE0qiH");
 
-   const form = document.getElementById('oneri-form');
-   const statusDiv = document.getElementById('status'); // Buradaki 'status' ile HTML'deki id aynı olmalı
-   const btn = document.getElementById('btn-text');
+    const form = document.getElementById('oneri-form');
+    const statusDiv = document.getElementById('status');
+    const btn = document.getElementById('btn-text');
 
-   form.addEventListener('submit', async function(event) {
+    form.addEventListener('submit', async function(event) {
         event.preventDefault();
-    
-        // Güvenlik kontrolü: statusDiv gerçekten var mı?
-        if (!statusDiv) {
-            console.error("Hata: 'status' ID'li div bulunamadı!");
-            return;
-       }
+        const myName = localStorage.getItem('user_name') || "Bilinmeyen Kullanıcı";
+        
+        // Element kontrolü (Hata almamak için)
+        if (!statusDiv || !btn) return;
 
-        statusDiv.innerText = "Kontrol ediliyor..."; // Hata burada (76. satırda) veriyordu
+        btn.innerText = "Kontrol ediliyor...";
         btn.disabled = true;
 
-        // --- GÜNLÜK 3 ÖNERİ SINIRI KONTROLÜ ---
-        const bugun = new Date().toLocaleDateString('tr-TR');
-        const snapshot = await db.ref('oneriler_log').orderByChild('kimden').equalTo(myName).once('value');
-        
-        let bugunkuOneriSayisi = 0;
-        snapshot.forEach(child => {
-            if(child.val().tarih === bugun) bugunkuOneriSayisi++;
-        });
+        try {
+            // 1. Günlük 3 Öneri Sınırı Kontrolü
+            const bugun = new Date().toLocaleDateString('tr-TR');
+            const snapshot = await db.ref('oneriler_log').orderByChild('kimden').equalTo(myName).once('value');
+            
+            let bugunkuOneriSayisi = 0;
+            snapshot.forEach(child => {
+                if(child.val().tarih === bugun) bugunkuOneriSayisi++;
+            });
 
-        if (bugunkuOneriSayisi >= 3) {
-            statusDiv.style.color = "#ff4757";
-            statusDiv.innerText = "⚠️ Günlük 3 öneri limitine ulaştınız. Yarın tekrar deneyebilirsiniz!";
-            btn.innerText = "Limit Doldu";
-            return;
-        }
+            if (bugunkuOneriSayisi >= 3) {
+                statusDiv.style.color = "#ff4757";
+                statusDiv.innerText = "⚠️ Günlük 3 öneri limitine ulaştınız!";
+                btn.innerText = "Limit Doldu";
+                return;
+            }
 
-        // --- FOTOĞRAF YÜKLEME (FIREBASE STORAGE) ---
-        btn.innerText = "Fotoğraf Yükleniyor...";
-        const file = document.getElementById('oneri-dosya').files[0];
-        let photoUrl = "Fotoğraf eklenmedi";
+            // 2. Fotoğraf Yükleme (Eğer seçildiyse)
+            btn.innerText = "Fotoğraf Yükleniyor...";
+            const file = document.getElementById('oneri-dosya').files[0];
+            let photoUrl = "Fotoğraf eklenmedi";
 
-        if (file) {
-            try {
+            if (file) {
                 const fileRef = storage.ref('oneriler/' + Date.now() + "_" + file.name);
                 await fileRef.put(file);
                 photoUrl = await fileRef.getDownloadURL();
-            } catch (err) {
-                console.error("Yükleme hatası:", err);
             }
+
+            // 3. EmailJS Gönderimi
+            btn.innerText = "Mail Gönderiliyor...";
+            const templateParams = {
+                user_name: myName,
+                user_email: auth.currentUser ? auth.currentUser.email : "E-posta yok",
+                subject: document.getElementById('oneri-baslik').value,
+                photo_url: photoUrl,
+                message: document.getElementById('oneri-metin').value
+            };
+
+            await emailjs.send('service_iqra', 'template_473n5dj', templateParams);
+
+            // 4. Başarılıysa Log Tut ve Sıfırla
+            await db.ref('oneriler_log').push({ kimden: myName, tarih: bugun });
+
+            statusDiv.style.color = "#42b72a";
+            statusDiv.innerText = "✅ Öneriniz başarıyla iletildi!";
+            form.reset();
+
+        } catch (error) {
+            console.error(error);
+            statusDiv.style.color = "#ff4757";
+            statusDiv.innerText = "❌ Bir hata oluştu. Lütfen tekrar deneyin.";
+        } finally {
+            btn.innerText = "Öneriyi Admin'e Gönder";
+            btn.disabled = false;
         }
-
-        // --- EMAILJS GÖNDERİMİ ---
-        btn.innerText = "Mail Gönderiliyor...";
-        const templateParams = {
-            user_name: myName,
-            user_email: auth.currentUser ? auth.currentUser.email : "E-posta yok",
-            subject: document.getElementById('oneri-baslik').value,
-            photo_url: photoUrl, // Artık kalıcı bir Firebase linki gidiyor
-            message: document.getElementById('oneri-metin').value
-        };
-
-        emailjs.send('service_iqra', 'template_473n5dj', templateParams)
-            .then(async function() {
-                // Gönderim başarılıysa log tut (limit için)
-                await db.ref('oneriler_log').push({
-                    kimden: myName,
-                    tarih: bugun
-                });
-
-                statusDiv.style.color = "#42b72a";
-                statusDiv.innerText = "✅ Öneriniz başarıyla admin mailine iletildi!";
-                form.reset();
-            }, function(error) {
-                statusDiv.style.color = "#ff4757";
-                statusDiv.innerText = "❌ Hata oluştu!";
-            })
-            .finally(() => {
-                btn.innerText = "Öneriyi Admin'e Gönder";
-                btn.disabled = false;
-            });
-   });
+    });
 </script>
+
 </body>
 </html>
